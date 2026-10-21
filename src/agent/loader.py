@@ -7,6 +7,7 @@ import csv
 import json
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 
@@ -32,6 +33,11 @@ class Pack:
     interventions: dict
     pricing: dict
     arms: dict           # user_id -> 'agent' | 'holdout'
+
+    @cached_property
+    def dialects(self):
+        """Dialects that actually have content. App settings outside this set are invalid."""
+        return {t["dialect"] for t in self.catalogue.values()}
 
     def events_path(self):
         return self.root / "data" / "events.jsonl"

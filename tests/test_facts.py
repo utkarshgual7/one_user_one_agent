@@ -21,7 +21,8 @@ def profile(**kw):
 
 
 def pack(rows):
-    return Pack(root=Path("."), catalogue={}, episodes={}, profiles={"U-1": rows}, goals={},
+    cat = {f"T{d}": {"dialect": d} for d in ("d1", "d2", "d3", "d4", "d5", "d6")}
+    return Pack(root=Path("."), catalogue=cat, episodes={}, profiles={"U-1": rows}, goals={},
                 interventions={}, pricing={}, arms={})
 
 
@@ -38,6 +39,12 @@ class ConflictingSources(unittest.TestCase):
         self.assertEqual(f["dialect"]["value"], "d3")
         self.assertEqual(f["dialect"]["source"], "app_setting")
         self.assertEqual(f["dialect"]["conflicts"], ["profile:d1", "campaign_link:d5"])
+
+    def test_invalid_app_dialect_is_not_used(self):
+        for raw in ("d7", "NA", None):
+            f = facts.build_facts(pack([profile()]), [], trigger(dialect=raw), NOW)
+            self.assertIsNone(f["dialect"]["value"], raw)
+            self.assertEqual(f["dialect"]["source"], "app_setting_invalid")
 
     def test_purchase_after_snapshot_beats_profile_never(self):
         buy = ev("B", "purchase_completed", "2026-09-30T20:00:00.000Z", {"plan_id": "P_MONTH", "is_trial": False})

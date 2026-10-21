@@ -103,8 +103,14 @@ def consent(rows, history, field, channel, now):
     return _fact(values.pop() == "true", "profile", rows[0]["snapshot_at"], now, [_profile_ref(r) for r in rows])
 
 
-def dialect(rows, history, trigger, now):
-    used = trigger["app_dialect"]
+def dialect(rows, history, trigger, now, valid):
+    raw = trigger["app_dialect"]
+    if raw not in valid:
+        hints = sorted({f"profile:{r['preferred_dialect']}" for r in rows})
+        return _fact(None, "app_setting_invalid", trigger["received_at"], now, [f"trigger:{trigger['event_id']}"],
+                     [f"app_setting:{raw}"] + hints,
+                     f"app reports dialect {raw!r}, which has no content: it will not show a personalised page")
+    used = raw
     conflicts = [f"profile:{d}" for d in sorted({r["preferred_dialect"] for r in rows}) if d != used]
     link = trigger["properties"].get("deeplink")
     if link and link.split("/")[4] != used:
@@ -134,8 +140,8 @@ def viewing(pack, history, now):
         t = pack.catalogue.get(e["properties"].get("title_id"))
         if not t or t["content_type"] == "film":
             continue
-        s = series.setdefault(t["content_slug"], {"slug": t["content_slug"], "episodes": set(), "last": None,
-                                                  "evidence": None})
+        s = series.setdefault(t["content_slug"], {"slug": t["content_slug"], "dialect": t["dialect"],
+                                                  "episodes": set(), "last": None, "evidence": None})
         s["episodes"].add(e["properties"].get("episode_id"))
         s["last"], s["evidence"] = event_time(e), _ev_ref(e)
     unfinished = []
@@ -143,7 +149,7 @@ def viewing(pack, history, now):
         total = {ep["episode_id"] for ep in pack.episodes.get(s["slug"], [])}
         left = len(total - s["episodes"])
         if left:
-            unfinished.append({"slug": s["slug"], "episodes_left": left, "last_played": s["last"],
+            unfinished.append({"slug": s["slug"], "dialect": s["dialect"], "episodes_left": left, "last_played": s["last"],
                                "evidence": s["evidence"]})
     unfinished.sort(key=lambda s: s["last_played"], reverse=True)
 
@@ -190,7 +196,7 @@ def build_facts(pack, history, trigger, now):
         "ever_paid": ever_paid(rows, history, now),
         "push_consent": consent(rows, history, "notifications_opt_in", "push", now),
         "whatsapp_consent": consent(rows, history, "whatsapp_opt_in", "whatsapp", now),
-        "dialect": dialect(rows, history, trigger, now),
+        "dialect": dialect(rows, history, trigger, now, pack.dialects),
         "language": _fact(trigger["app_language"], "app_setting", trigger["received_at"], now,
                           [f"trigger:{trigger['event_id']}"]),
         "last_app_open": last_app_open(history, trigger, now),

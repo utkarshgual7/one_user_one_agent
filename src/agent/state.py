@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS decisions_by_user ON decisions(user_id, decided_at);
 CREATE TABLE IF NOT EXISTS goals (
     goal_key TEXT PRIMARY KEY, user_id TEXT NOT NULL, goal_id TEXT NOT NULL, decision_id TEXT NOT NULL,
     started_at TEXT NOT NULL, deadline TEXT NOT NULL, status TEXT NOT NULL,
-    verdict_reason TEXT, judged_at TEXT, rule_version TEXT);
+    verdict_reason TEXT, judged_at TEXT, rule_version TEXT, target TEXT, arm TEXT);
 CREATE UNIQUE INDEX IF NOT EXISTS one_open_goal ON goals(user_id) WHERE status = 'open';
 
 CREATE TABLE IF NOT EXISTS actions (
@@ -92,12 +92,13 @@ class State:
         r = self.db.execute("SELECT * FROM goals WHERE user_id = ? AND status = 'open'", (user_id,)).fetchone()
         return dict(r) if r else None
 
-    def start_goal(self, user_id, goal_id, decision_id, started_at, deadline, rule_version):
+    def start_goal(self, user_id, goal_id, decision_id, started_at, deadline, rule_version, target=None, arm=None):
+        """Holdout viewers get the same goal (a shadow goal, never acted on) so both arms are judged alike."""
         key = f"{user_id}:{goal_id}:{started_at}"
         with self.db:
             self.db.execute(
-                "INSERT INTO goals VALUES (?,?,?,?,?,?, 'open', NULL, NULL, ?)",
-                (key, user_id, goal_id, decision_id, started_at, deadline, rule_version))
+                "INSERT INTO goals VALUES (?,?,?,?,?,?, 'open', NULL, NULL, ?, ?, ?)",
+                (key, user_id, goal_id, decision_id, started_at, deadline, rule_version, target, arm))
         return key
 
     def close_goal(self, goal_key, status, reason, judged_at):
