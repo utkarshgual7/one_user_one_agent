@@ -1,0 +1,11 @@
+# Per-viewer data from the company pack. Brief says: treat as personal data, do not upload
+# to services that retain it. Evaluators already have these; copy them into pack/ to run.
+pack/data/
+pack/pilot/
+pack/replay/
+pack/*.pdf
+
+__pycache__/
+*.pyc
+*.db
+.DS_Store
