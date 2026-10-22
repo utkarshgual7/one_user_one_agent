@@ -122,7 +122,7 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.05,
+    "compute_ms": 0.06,
     "dependency_wait_ms": 3800
    },
    "decided_in_ms": 3800,
@@ -142,6 +142,25 @@
     "received_at": "2026-10-01T13:13:02.547Z",
     "deliver_at": "2026-10-01T13:13:02.547Z"
    },
+   "goal": {
+    "id": null,
+    "reason": "viewer history unavailable (user data store read failed twice): not enough evidence to act"
+   },
+   "dialect": null,
+   "content": [],
+   "evidence": [],
+   "confidence": 0.0,
+   "confidence_reason": [
+    "no viewer history could be read"
+   ],
+   "assumptions": [
+    "nothing is assumed about a viewer whose history is unreadable"
+   ],
+   "checks": {
+    "passed": [],
+    "failed": []
+   },
+   "conflicts": [],
    "status": "NO_ACTION",
    "no_action_reason": "viewer history unavailable (user data store read failed twice): not enough evidence to act",
    "degraded": [

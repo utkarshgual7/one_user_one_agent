@@ -340,7 +340,7 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.48,
+    "compute_ms": 0.46,
     "dependency_wait_ms": 20
    },
    "decided_in_ms": 20,
@@ -503,10 +503,10 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.53,
+    "compute_ms": 0.49,
     "dependency_wait_ms": 20
    },
-   "decided_in_ms": 21,
+   "decided_in_ms": 20,
    "published_at": "2026-10-01T04:57:00.483Z",
    "action": "NO_ACTION",
    "content": [],
@@ -632,10 +632,10 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.5,
+    "compute_ms": 0.49,
     "dependency_wait_ms": 20
    },
-   "decided_in_ms": 21,
+   "decided_in_ms": 20,
    "published_at": "2026-10-01T05:20:46.602Z",
    "action": "NO_ACTION",
    "content": [],
@@ -757,7 +757,7 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.52,
+    "compute_ms": 0.5,
     "dependency_wait_ms": 20
    },
    "decided_in_ms": 21,

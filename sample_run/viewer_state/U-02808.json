@@ -135,7 +135,7 @@
    },
    "latency": {
     "queue_wait_ms": 0,
-    "compute_ms": 0.47,
+    "compute_ms": 0.45,
     "dependency_wait_ms": 20
    },
    "decided_in_ms": 20,

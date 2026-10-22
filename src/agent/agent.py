@@ -32,6 +32,10 @@ class Agent:
             history = self.store.history(uid, now, budget, trigger["event_id"])
         except (StoreError, BudgetExceeded) as error:
             reason = f"viewer history unavailable ({error}): not enough evidence to act"
+            decision.update({"goal": {"id": None, "reason": reason}, "dialect": None, "content": [], "evidence": [],
+                             "confidence": 0.0, "confidence_reason": ["no viewer history could be read"],
+                             "assumptions": ["nothing is assumed about a viewer whose history is unreadable"],
+                             "checks": {"passed": [], "failed": []}, "conflicts": []})
             return self._finish(decision, start, budget, queue_wait_s, "NO_ACTION", reason, [str(error)]), []
 
         facts = facts_mod.build_facts(self.pack, history, trigger, now)
