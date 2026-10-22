@@ -82,4 +82,4 @@ src/agent/
 ```
 
 Design: [ARCHITECTURE.md](ARCHITECTURE.md). Limits: [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
-AI use: [AI_COLLABORATION.md](AI_COLLABORATION.md). Data quirks: [docs/DATA_FINDINGS.md](docs/DATA_FINDINGS.md).
+AI use: [AI_COLLABORATION.md](AI_COLLABORATION.md). Data quirks: appendix of [ARCHITECTURE.md](ARCHITECTURE.md).
