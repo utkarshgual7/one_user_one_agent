@@ -4,21 +4,21 @@ from datetime import datetime, timedelta, timezone
 IST = timezone(timedelta(hours=5, minutes=30))
 
 
-def parse(s):
-    return datetime.fromisoformat(s.replace("Z", "+00:00"))
+def parse(text):
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
 
-def fmt(dt):
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond // 1000:03d}Z"
+def fmt(moment):
+    return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{moment.microsecond // 1000:03d}Z"
 
 
-def shift(s, **delta):
-    return fmt(parse(s) + timedelta(**delta))
+def shift(timestamp, **delta):
+    return fmt(parse(timestamp) + timedelta(**delta))
 
 
-def ist_day(s):
+def ist_day(timestamp):
     """IST calendar day of a UTC timestamp, e.g. '2026-10-01'. Used for 1-message-per-day and 'later day' rules."""
-    return parse(s).astimezone(IST).date().isoformat()
+    return parse(timestamp).astimezone(IST).date().isoformat()
 
 
 def age_s(then, now):

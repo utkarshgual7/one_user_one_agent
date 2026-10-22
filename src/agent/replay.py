@@ -20,7 +20,7 @@ from .state import State
 from .verifier import Verifier
 
 DEFAULTS = {"workers": 4, "max_model_calls": 8, "max_tool_calls": 20, "model_timeout_s": 5.0,
-            "store_timeout_s": 5.0, "shed_model_after_s": 20.0}
+            "store_timeout_s": 5.0, "shed_model_after_s": 2.0}  # a page must land before the viewer reaches home (3-40 s)
 
 
 def _h01(*parts):
@@ -31,12 +31,12 @@ class Health:
     """Dependency status at a moment, from control events. Active only inside each stated window."""
 
     def __init__(self, controls):
-        self.windows = [(c["dependency"], c["type"], c["at"], c["until"]) for c in controls
-                        if c["type"] in ("dependency_unavailable", "dependency_degraded")]
+        self.windows = [(control["dependency"], control["type"], control["at"], control["until"]) for control in controls
+                        if control["type"] in ("dependency_unavailable", "dependency_degraded")]
 
     def __call__(self, dep, now):
-        for d, kind, start, until in self.windows:
-            if d == dep and start <= now < until:
+        for window_dependency, kind, start, until in self.windows:
+            if window_dependency == dep and start <= now < until:
                 return "unavailable" if kind == "dependency_unavailable" else "degraded"
         return "ok"
 
@@ -76,7 +76,7 @@ class Replay:
         state_dir.mkdir(parents=True)
         self.state = State(str(state_dir / "state.db"))
         self.state.ingest_history(self.pack.events_path())
-        plays = [json.loads(r[0]) for r in self.state.db.execute("SELECT body FROM events WHERE event='play_started'")]
+        plays = [json.loads(row[0]) for row in self.state.db.execute("SELECT body FROM events WHERE event='play_started'")]
         self.cat = planner.Catalog(self.pack, planner.play_counts(self.pack, plays))
         self.book = goals.GoalBook(self.pack.goals)
         self.controls = self.pack.replay("control_events")
@@ -96,23 +96,23 @@ class Replay:
         return f"D-{self.n_dec:06d}"
 
     def _save_actions(self, actions):
-        for a in actions:
+        for action in actions:
             self.n_act += 1
-            a["action_id"] = f"A-{self.n_act:06d}"
-            a["status"] = "scheduled" if a["type"] in ("push", "whatsapp") else "published"
-            self.state.save_action(a)
+            action["action_id"] = f"A-{self.n_act:06d}"
+            action["status"] = "scheduled" if action["type"] in ("push", "whatsapp") else "published"
+            self.state.save_action(action)
 
     # ---- stream
     def stream(self):
-        items = [(c["at"], 0, "control", c) for c in self.controls]
-        items += [(e["deliver_at"], 1, "live", e) for e in self.pack.replay("live_events")]
-        items += [(t["deliver_at"], 2, "trigger", t) for t in self.pack.replay("triggers")]
-        return sorted(items, key=lambda x: (x[0], x[1]))
+        items = [(control["at"], 0, "control", control) for control in self.controls]
+        items += [(event["deliver_at"], 1, "live", event) for event in self.pack.replay("live_events")]
+        items += [(trigger["deliver_at"], 2, "trigger", trigger) for trigger in self.pack.replay("triggers")]
+        return sorted(items, key=lambda item: (item[0], item[1]))
 
     def run(self):
         free = [0.0] * self.cfg["workers"]       # epoch seconds when each worker is next free
         heapq.heapify(free)
-        for at, _, kind, item in self.stream():
+        for _time, _priority, kind, item in self.stream():
             if kind == "control":
                 self.on_control(item)
             elif kind == "live":
@@ -121,131 +121,136 @@ class Replay:
                 self.on_trigger(item, free)
         return self.write()
 
-    def on_trigger(self, t, free):
-        if self.state.has_decision(t["event_id"]):
+    def on_trigger(self, trigger, free):
+        if self.state.has_decision(trigger["event_id"]):
             self.duplicates += 1
-            self.log.append({"at": t["deliver_at"], "type": "duplicate_trigger", "event_id": t["event_id"],
-                             "user_id": t["user_id"], "response": "ignored: decision already exists for this trigger"})
+            self.log.append({"at": trigger["deliver_at"], "type": "duplicate_trigger", "event_id": trigger["event_id"],
+                             "user_id": trigger["user_id"], "response": "ignored: decision already exists for this trigger"})
             return
-        self.state.add_event({k: v for k, v in t.items() if k != "deliver_at"})
-        deliver = clock.parse(t["deliver_at"]).timestamp()
+        self.state.add_event({key: value for key, value in trigger.items() if key != "deliver_at"})
+        deliver = clock.parse(trigger["deliver_at"]).timestamp()
         start = max(deliver, heapq.heappop(free))
-        now = clock.shift(t["deliver_at"], seconds=start - deliver)
-        d, actions = self.agent.decide(t, self._decision_id(), now, queue_wait_s=start - deliver)
-        heapq.heappush(free, deliver + d["decided_in_ms"] / 1000)
+        now = clock.shift(trigger["deliver_at"], seconds=start - deliver)
+        decision, actions = self.agent.decide(trigger, self._decision_id(), now, queue_wait_s=start - deliver)
+        heapq.heappush(free, deliver + decision["decided_in_ms"] / 1000)
         self._save_actions(actions)
-        d["action_ids"] = [a["action_id"] for a in actions]
-        self.state.save_decision({**d, "decided_at": d["published_at"]})
-        self.decisions.append(d)
+        decision["action_ids"] = [action["action_id"] for action in actions]
+        self.state.save_decision({**decision, "decided_at": decision["published_at"]})
+        self.decisions.append(decision)
 
-    def on_live(self, e):
-        e = {k: v for k, v in e.items() if k != "deliver_at"}
-        if not self.state.add_event(e):
+    def on_live(self, event):
+        event = {key: value for key, value in event.items() if key != "deliver_at"}
+        if not self.state.add_event(event):
             return
-        if e["event"] == "notification_opt_out":
-            self._cancel(lambda a: a["user_id"] == e["user_id"] and a["type"] == e["properties"].get("channel"),
-                         f"viewer opted out of {e['properties'].get('channel')}", e["received_at"])
-        self.judge.on_event(self, e)
+        if event["event"] == "notification_opt_out":
+            self._cancel(lambda action: action["user_id"] == event["user_id"] and action["type"] == event["properties"].get("channel"),
+                         f"viewer opted out of {event['properties'].get('channel')}", event["received_at"])
+        self.judge.on_event(self, event)
 
-    def on_control(self, c):
-        entry = {"at": c["at"], "type": c["type"], "detail": c}
-        if c["type"] == "title_withdrawn":
-            tid = c["title_id"]
-            self.cat.withdraw(tid, c["at"])
-            self.verifier.withdrawn[tid] = c["at"]
-            entry["affected_pages"] = self._repair_pages(tid, c["at"])
-            entry["cancelled_messages"] = self._cancel(
-                lambda a: a["type"] in ("push", "whatsapp") and a.get("title_id") == tid,
-                f"title {tid} withdrawn", c["at"])
-        elif c["type"] == "goal_rule_corrected":
-            self.book.correct(c)
-            open_g = self.state.goals(status="open")
-            touched = [g["goal_key"] for g in open_g if g["goal_id"] == c["goal_id"]]
-            entry["affected_open_goals"] = len(touched)
-            entry["rule_version"] = self.book.version
-            entry["response"] = (f"{c['goal_id']} success rule replaced; {len(touched)} open {c['goal_id']} goals "
-                                 "will be judged by the new rule; no other goal or viewer reprocessed")
-            entry["reopened_for_rejudging"] = self.judge.on_rule_change(self, c["goal_id"])
-        else:
-            entry["response"] = (f"{c['dependency']} {c['type'].split('_')[1]} until {c['until']}: decisions fall "
-                                 "back (model: rules only, no messages; store: retry once, else no action)")
-        self.log.append(entry)
+    def on_control(self, control):
+        """Each surprise touches only the viewers and decisions it affects."""
+        handler = {"title_withdrawn": self._on_withdrawn, "goal_rule_corrected": self._on_rule_corrected,
+                   "dependency_unavailable": self._on_dependency, "dependency_degraded": self._on_dependency
+                   }.get(control["type"], lambda control: {"response": "unknown control type: logged, not acted on"})
+        self.log.append({"at": control["at"], "type": control["type"], "detail": control, **handler(control)})
 
-    def _repair_pages(self, tid, at):
+    def _on_withdrawn(self, control):
+        tid, withdrawn_at = control["title_id"], control["at"]
+        self.cat.withdraw(tid, withdrawn_at)
+        self.verifier.withdrawn[tid] = withdrawn_at
+        return {"affected_pages": self._repair_pages(tid, withdrawn_at),
+                "cancelled_messages": self._cancel(lambda action: action["type"] in ("push", "whatsapp") and action.get("title_id") == tid,
+                                                   f"title {tid} withdrawn", withdrawn_at)}
+
+    def _on_rule_corrected(self, control):
+        gid = control["goal_id"]
+        self.book.correct(control)
+        touched = [goal for goal in self.state.goals(status="open") if goal["goal_id"] == gid]
+        return {"affected_open_goals": len(touched), "rule_version": self.book.version,
+                "response": f"{gid} success rule replaced; {len(touched)} open {gid} goals will be judged by the new "
+                            "rule; no other goal or viewer reprocessed",
+                "reopened_for_rejudging": self.judge.on_rule_change(self, gid)}
+
+    def _on_dependency(self, control):
+        # The fault itself is injected through Health; here it is only noted.
+        return {"response": f"{control['dependency']} {control['type'].split('_')[1]} until {control['until']}: decisions fall back "
+                            "(model: rules only, no messages; store: retry once, else no action)"}
+
+    def _repair_pages(self, tid, withdrawn_at):
         """Republish live pages that contain a withdrawn title, without it. Rows that drop below 3 are removed."""
         ttl = self.pack.interventions["home_page"]["ttl_minutes"] * 60
         repaired = []
-        for a in self.state.all_actions():
-            if a["type"] != "home_page" or a.get("status") != "published" or clock.age_s(a["published_at"], at) >= ttl:
+        for action in self.state.all_actions():
+            if action["type"] != "home_page" or action.get("status") != "published" or clock.age_s(action["published_at"], withdrawn_at) >= ttl:
                 continue
-            ids = [a["hero_title_id"]] + [t for r in a["rows"] for t in r["title_ids"]]
+            ids = [action["hero_title_id"]] + [title_id for row in action["rows"] for title_id in row["title_ids"]]
             if tid not in ids:
                 continue
-            rows = [{**r, "title_ids": [t for t in r["title_ids"] if t != tid]} for r in a["rows"]]
-            rows = [r for r in rows if len(r["title_ids"]) >= 3]
-            hero = None if a["hero_title_id"] == tid else a["hero_title_id"]
-            a["status"] = "superseded"
-            self.state.update_action(a)
-            new = {k: v for k, v in a.items() if k not in ("action_id", "status")}
-            new.update({"rows": rows, "hero_title_id": hero, "published_at": at, "replaces": a["action_id"],
+            rows = [{**row, "title_ids": [title_id for title_id in row["title_ids"] if title_id != tid]} for row in action["rows"]]
+            rows = [row for row in rows if len(row["title_ids"]) >= 3]
+            hero = None if action["hero_title_id"] == tid else action["hero_title_id"]
+            action["status"] = "superseded"
+            self.state.update_action(action)
+            new = {key: value for key, value in action.items() if key not in ("action_id", "status")}
+            new.update({"rows": rows, "hero_title_id": hero, "published_at": withdrawn_at, "replaces": action["action_id"],
                         "reason": f"title {tid} withdrawn"})
             if rows or hero:
                 self._save_actions([new])
-            repaired.append({"user_id": a["user_id"], "old_action": a["action_id"],
+            repaired.append({"user_id": action["user_id"], "old_action": action["action_id"],
                              "new_action": new.get("action_id", "none: page empty after removal")})
         return repaired
 
-    def _cancel(self, match, reason, at):
+    def _cancel(self, match, reason, cancelled_at):
         out = []
-        for a in self.state.all_actions():
-            if a.get("status") == "scheduled" and match(a) and a["send_at"] > at:
-                a.update({"status": "cancelled", "cancel_reason": reason, "cancelled_at": at})
-                self.state.update_action(a)
-                out.append(a["action_id"])
+        for action in self.state.all_actions():
+            if action.get("status") == "scheduled" and match(action) and action["send_at"] > cancelled_at:
+                action.update({"status": "cancelled", "cancel_reason": reason, "cancelled_at": cancelled_at})
+                self.state.update_action(action)
+                out.append(action["action_id"])
         return out
 
     # ---- outputs
     def write(self):
         self.out.mkdir(parents=True, exist_ok=True)
-        with open(self.out / "decisions.jsonl", "w") as f:
-            for d in self.decisions:
-                f.write(json.dumps(d) + "\n")
+        with open(self.out / "decisions.jsonl", "w") as file:
+            for decision in self.decisions:
+                file.write(json.dumps(decision) + "\n")
         all_actions = self.state.all_actions()
-        live = [a for a in all_actions if a.get("status") in ("published", "scheduled", "superseded")]
-        with open(self.out / "actions.jsonl", "w") as f:       # simulator input
-            for a in live:
-                f.write(json.dumps(a) + "\n")
-        with open(self.out / "actions_all.jsonl", "w") as f:   # audit, including cancelled
-            for a in all_actions:
-                f.write(json.dumps(a) + "\n")
-        with open(self.out / "control_log.jsonl", "w") as f:
-            for e in self.log:
-                f.write(json.dumps(e) + "\n")
+        live = [action for action in all_actions if action.get("status") in ("published", "scheduled", "superseded")]
+        with open(self.out / "actions.jsonl", "w") as file:       # simulator input
+            for action in live:
+                file.write(json.dumps(action) + "\n")
+        with open(self.out / "actions_all.jsonl", "w") as file:   # audit, including cancelled
+            for action in all_actions:
+                file.write(json.dumps(action) + "\n")
+        with open(self.out / "control_log.jsonl", "w") as file:
+            for entry in self.log:
+                file.write(json.dumps(entry) + "\n")
         report = latency_report(self.decisions, self.controls)
         report["duplicate_triggers_ignored"] = self.duplicates
         (self.out / "latency_report.json").write_text(json.dumps(report, indent=2))
-        dump_viewers(self.state, self.out / "viewer_state", {d["viewer_id"] for d in self.decisions})
+        dump_viewers(self.state, self.out / "viewer_state", {decision["viewer_id"] for decision in self.decisions})
         return report
 
 
-def _pct(xs, p):
-    xs = sorted(xs)
-    return xs[min(len(xs) - 1, int(len(xs) * p))] if xs else None
+def _pct(values, fraction):
+    values = sorted(values)
+    return values[min(len(values) - 1, int(len(values) * fraction))] if values else None
 
 
 def latency_report(decisions, controls):
-    ms = [d["decided_in_ms"] for d in decisions]
-    windows = [(c["dependency"], c["at"], c["until"]) for c in controls if "until" in c]
+    durations_ms = [decision["decided_in_ms"] for decision in decisions]
+    windows = [(control["dependency"], control["at"], control["until"]) for control in controls if "until" in control]
     by_window = {}
     for dep, start, until in windows:
-        w = [d["decided_in_ms"] for d in decisions if start <= d["trigger"]["deliver_at"] < until]
-        by_window[f"{dep} {start}..{until}"] = {"decisions": len(w), "p95_ms": _pct(w, .95), "max_ms": max(w, default=None)}
+        window_durations = [decision["decided_in_ms"] for decision in decisions if start <= decision["trigger"]["deliver_at"] < until]
+        by_window[f"{dep} {start}..{until}"] = {"decisions": len(window_durations), "p95_ms": _pct(window_durations, .95), "max_ms": max(window_durations, default=None)}
     hours = {}
-    for d in decisions:
-        hours.setdefault(d["trigger"]["deliver_at"][:13], []).append(d["decided_in_ms"])
-    peak = max(hours, key=lambda h: len(hours[h]))
-    return {"decisions": len(ms), "p50_ms": _pct(ms, .5), "p95_ms": _pct(ms, .95), "p99_ms": _pct(ms, .99),
-            "max_ms": max(ms), "over_60s": sum(x > 60000 for x in ms), "over_5min": sum(x > 300000 for x in ms),
+    for decision in decisions:
+        hours.setdefault(decision["trigger"]["deliver_at"][:13], []).append(decision["decided_in_ms"])
+    peak = max(hours, key=lambda hour: len(hours[hour]))
+    return {"decisions": len(durations_ms), "p50_ms": _pct(durations_ms, .5), "p95_ms": _pct(durations_ms, .95), "p99_ms": _pct(durations_ms, .99),
+            "max_ms": max(durations_ms), "over_60s": sum(duration > 60000 for duration in durations_ms), "over_5min": sum(duration > 300000 for duration in durations_ms),
             "peak_hour_utc": {"hour": peak, "decisions": len(hours[peak]), "p95_ms": _pct(hours[peak], .95)},
             "dependency_windows": by_window,
             "note": "decided_in_ms = queue wait + measured compute + simulated dependency waits"}
@@ -253,7 +258,7 @@ def latency_report(decisions, controls):
 
 def dump_viewers(state, folder, users):
     """One readable JSON per viewer: everything the agent knew, decided, did and learned."""
-    for u in sorted(users):
-        (folder / f"{u}.json").write_text(json.dumps({
-            "viewer_id": u, "goals": state.goals(user_id=u), "decisions": state.decisions(u),
-            "actions": state.actions(u), "learned": state.learned(u)}, indent=1))
+    for user_id in sorted(users):
+        (folder / f"{user_id}.json").write_text(json.dumps({
+            "viewer_id": user_id, "goals": state.goals(user_id=user_id), "decisions": state.decisions(user_id),
+            "actions": state.actions(user_id), "learned": state.learned(user_id)}, indent=1))

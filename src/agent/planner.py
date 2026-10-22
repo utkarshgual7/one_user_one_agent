@@ -1,19 +1,18 @@
-"""Decide the intervention for one viewer: home page, one follow-up message, or nothing.
+"""Decide the intervention for one viewer: a home page, at most one follow-up message, or nothing.
 
-Only catalogue fields are used to pick content (dialect, availability, genres, premium flag, release date,
-popularity from past plays). Titles and descriptions are never read as instructions: descriptions are not used
-at all.
+Content is picked from catalogue fields only (dialect, availability, genres, premium, release date) plus popularity
+from past plays. Descriptions are never read.
 """
 from collections import Counter
 
 from . import clock
 
-RETURN_GOALS = {"G01", "G03", "G07", "G12"}   # goals that need the viewer to come back: worth one follow-up
-FREE_FIRST = {"G01", "G02", "G03", "G07", "G12"}  # non-paying stages: avoid sending them into a paywall
-PREMIUM_FIRST = {"G04", "G05", "G06"}          # purchase goals: show what paying unlocks
-MAX_TRIGGER_AGE_S = 600   # older than this, the viewer is no longer in that session
-FOLLOW_UP_HOUR_IST = 19   # evening, well outside quiet hours (22:00-08:00)
-ROW_LEN = 10
+RETURN_GOALS = {"G01", "G03", "G07", "G12"}       # need the viewer to come back: worth one follow-up
+FREE_FIRST = {"G01", "G02", "G03", "G07", "G12"}  # non-paying stages: don't lead into a paywall
+PREMIUM_FIRST = {"G04", "G05", "G06"}             # purchase goals: show what paying unlocks
+MAX_TRIGGER_AGE_S = 600                           # older: the viewer has left that session
+FOLLOW_UP_HOUR_IST = 19                           # evening, outside quiet hours
+ROW_LEN, MIN_ROW = 10, 3
 
 
 class Catalog:
@@ -22,35 +21,36 @@ class Catalog:
     def __init__(self, pack, play_counts):
         self.pack = pack
         self.titles = pack.catalogue
-        self.withdrawn = {}                      # title_id -> withdrawn at
-        self.popularity = play_counts            # content_slug -> plays in history
-        self.slug_genres = {t["content_slug"]: t["genres"].split("|") for t in pack.catalogue.values()}
+        self.withdrawn = {}            # title_id -> withdrawn at
+        self.popularity = play_counts  # content_slug -> plays in history
+        self.slug_genres = {title["content_slug"]: title["genres"].split("|") for title in pack.catalogue.values()}
 
-    def withdraw(self, title_id, at):
-        self.withdrawn[title_id] = at
+    def withdraw(self, title_id, withdrawn_at):
+        self.withdrawn[title_id] = withdrawn_at
 
-    def available(self, title_id, at):
-        t = self.titles.get(title_id)
-        if not t:
+    def available(self, title_id, now):
+        title = self.titles.get(title_id)
+        if not title:
             return False, "unknown title"
-        if t["available_from"] > at:
+        if title["available_from"] > now:
             return False, "not yet available"
-        if t["available_until"] and at >= t["available_until"]:
+        if title["available_until"] and now >= title["available_until"]:
             return False, "availability window ended"
-        if title_id in self.withdrawn and at >= self.withdrawn[title_id]:
+        if title_id in self.withdrawn and now >= self.withdrawn[title_id]:
             return False, "withdrawn"
         return True, "available"
 
-    def pool(self, dialect, language, at):
-        """One title per content_slug in this dialect, available at `at`; the app-language variant preferred."""
+    def pool(self, dialect, language, now):
+        """One title per content_slug in this dialect, available at `at`, app-language variant preferred,
+        most played first."""
         best = {}
-        for tid, t in self.titles.items():
-            if t["dialect"] != dialect or not self.available(tid, at)[0]:
+        for tid, title in self.titles.items():
+            if title["dialect"] != dialect or not self.available(tid, now)[0]:
                 continue
-            cur = best.get(t["content_slug"])
-            if cur is None or (t["language"] == language and cur["language"] != language):
-                best[t["content_slug"]] = t
-        return sorted(best.values(), key=lambda t: (-self.popularity.get(t["content_slug"], 0), t["title_id"]))
+            cur = best.get(title["content_slug"])
+            if cur is None or (title["language"] == language and cur["language"] != language):
+                best[title["content_slug"]] = title
+        return sorted(best.values(), key=lambda title: (-self.popularity.get(title["content_slug"], 0), title["title_id"]))
 
     def first_episode_minutes(self, slug):
         eps = self.pack.episodes.get(slug)
@@ -59,136 +59,147 @@ class Catalog:
 
 def play_counts(pack, play_events):
     """Popularity per content_slug from past play_started events (language variants counted together)."""
-    c = Counter()
-    for e in play_events:
-        t = pack.catalogue.get(e["properties"].get("title_id"))
-        if t:
-            c[t["content_slug"]] += 1
-    return c
+    return Counter(title["content_slug"] for event in play_events
+                   if (title := pack.catalogue.get(event["properties"].get("title_id"))))
 
 
-def build_page(cat, facts, goal, at):
-    dialect, language = facts["dialect"]["value"], facts["language"]["value"]
-    pool = cat.pool(dialect, language, at)
-    gid = goal["goal_id"]
-    watched = set(facts["watched_slugs"]["value"])
-    if gid in FREE_FIRST:
-        pool.sort(key=lambda t: t["is_premium"] == "true")      # stable: popularity order kept within groups
-    elif gid in PREMIUM_FIRST:
-        pool.sort(key=lambda t: t["is_premium"] != "true")
-    if gid == "G02":                                           # first full episode: short first episodes first
-        pool.sort(key=lambda t: cat.first_episode_minutes(t["content_slug"]) > 30)
+# ---- home page
 
-    used, rows, hero = set(), [], None
-    by_slug = {t["content_slug"]: t for t in pool}
-    resume = [s["slug"] for s in facts["unfinished_series"]["value"] if s["slug"] in by_slug]
-    if goal.get("target") in by_slug:
-        hero = by_slug[goal["target"]]["title_id"]
-        used.add(goal["target"])
-
-    def add_row(row_type, titles):
-        ids = []
-        for t in titles:
-            if t["content_slug"] not in used and len(ids) < ROW_LEN:
-                ids.append(t["title_id"])
-                used.add(t["content_slug"])
-        if len(ids) >= 3:            # platform drops shorter rows; don't publish them
-            rows.append({"row_type": row_type, "title_ids": ids})
-        else:
-            for tid in ids:
-                used.discard(cat.titles[tid]["content_slug"])
-
-    fresh = [t for t in pool if t["content_slug"] not in watched]
-    if hero is None and fresh:   # reserve the hero first so no row repeats it
-        hero = fresh[0]["title_id"]
-        used.add(fresh[0]["content_slug"])
-    add_row("next_episode", [by_slug[s] for s in resume])
-    genres = Counter(g for s in watched for g in cat.slug_genres.get(s, []))
-    new = [t for t in fresh if clock.shift(at, days=-30)[:10] <= t["release_date"] <= at[:10]]
-    if gid == "G08":
-        add_row("new_releases", new)
-    if genres:
-        top = genres.most_common(1)[0][0]
-        add_row("genre", [t for t in fresh if top in t["genres"].split("|")])
-    add_row("popular_in_dialect", fresh)
-    if gid != "G08":
-        add_row("new_releases", new)
-    return {"dialect": dialect, "hero_title_id": hero, "rows": rows[:6]}
+def _goal_order(cat, gid):
+    """Sort key that reorders the popularity-ranked pool for the goal's stage (the sort is stable)."""
+    def key(title):
+        premium = title["is_premium"] == "true"
+        long_first_episode = gid == "G02" and cat.first_episode_minutes(title["content_slug"]) > 30
+        stage = premium if gid in FREE_FIRST else (not premium if gid in PREMIUM_FIRST else False)
+        return long_first_episode, stage
+    return key
 
 
-def follow_up(cat, facts, goal, page, at, messages_by_day, avoid=()):
-    """At most one evening message for goals that need the viewer to return. Returns (message | None, reason)."""
+def build_page(cat, facts, goal, now):
+    dialect, gid = facts["dialect"]["value"], goal["goal_id"]
+    pool = sorted(cat.pool(dialect, facts["language"]["value"], now), key=_goal_order(cat, gid))
+    by_slug = {title["content_slug"]: title for title in pool}
+    watched_list = facts["watched_slugs"]["value"]
+    watched = set(watched_list)
+    fresh = [title for title in pool if title["content_slug"] not in watched]
+
+    hero = by_slug.get(goal.get("target")) or (fresh[0] if fresh else None)
+    used = {hero["content_slug"]} if hero else set()
+
+    # ordered list, not the set: set order changes per process and would flip genre ties
+    genres = Counter(genre for slug in watched_list for genre in cat.slug_genres.get(slug, []))
+    top_genre = genres.most_common(1)[0][0] if genres else None
+    since, today = clock.shift(now, days=-30)[:10], now[:10]
+    new = [title for title in fresh if since <= title["release_date"] <= today]
+    candidates = [
+        ("next_episode", [by_slug[series["slug"]] for series in facts["unfinished_series"]["value"] if series["slug"] in by_slug]),
+        ("new_releases", new if gid == "G08" else []),
+        ("genre", [title for title in fresh if top_genre in title["genres"].split("|")] if top_genre else []),
+        ("popular_in_dialect", fresh),
+        ("new_releases", new if gid != "G08" else []),
+    ]
+    rows = []
+    for row_type, titles in candidates:
+        picked = [title for title in titles if title["content_slug"] not in used][:ROW_LEN]   # pool is one title per slug
+        if len(picked) >= MIN_ROW:   # the platform drops shorter rows; don't publish them
+            rows.append({"row_type": row_type, "title_ids": [title["title_id"] for title in picked]})
+            used.update(title["content_slug"] for title in picked)
+    return {"dialect": dialect, "hero_title_id": hero["title_id"] if hero else None, "rows": rows[:6]}
+
+
+# ---- follow-up message
+
+def _send_at(now):
+    day = clock.ist_day(clock.shift(now, days=1))
+    return day, clock.fmt(clock.parse(f"{day}T{FOLLOW_UP_HOUR_IST:02d}:00:00+05:30"))
+
+
+def _whatsapp(title, send_at):
+    return {"type": "whatsapp", "send_at": send_at, "template_id": "wa_recommend_title_v1", "title_id": title["title_id"],
+            "variables": {"title_name": title["title"], "dialect_name": title["dialect"]}}
+
+
+def _push(title, send_at, gid):
+    body = (f"{title['title']}: aapka agla episode aapka intezaar kar raha hai." if gid == "G07"
+            else f"Aaj shaam dekhiye {title['title']}.")
+    return {"type": "push", "send_at": send_at, "title_id": title["title_id"], "deeplink": f"ott://title/{title['title_id']}",
+            "text": {"title": title["title"][:40], "body": body[:120]}}
+
+
+def follow_up(cat, facts, goal, page, now, messages_by_day, avoid=()):
+    """At most one evening message, only for goals that need the viewer to return. Returns (message | None, reason).
+    `avoid`: channels learned to be undeliverable for this viewer."""
     if goal["goal_id"] not in RETURN_GOALS:
         return None, f"no message: {goal['goal_id']} is served by the home page alone"
-    wa = facts["whatsapp_consent"]["value"] and "whatsapp" not in avoid
-    push = facts["push_consent"]["value"] and "push" not in avoid   # avoid: channels learned undeliverable
-    if not (wa or push):
+    can_whatsapp = facts["whatsapp_consent"]["value"] and "whatsapp" not in avoid
+    can_push = facts["push_consent"]["value"] and "push" not in avoid
+    if not (can_whatsapp or can_push):
         return None, "no message: no consented channel that is known to deliver"
-    send_day = clock.ist_day(clock.shift(at, days=1))
-    send_at = clock.fmt(clock.parse(f"{send_day}T{FOLLOW_UP_HOUR_IST:02d}:00:00+05:30"))
-    if messages_by_day.get(send_day):
-        return None, f"no message: already one planned for {send_day} (1 per day)"
-    title_id = page["hero_title_id"]
-    if not title_id or not cat.available(title_id, send_at)[0]:
+    day, send_at = _send_at(now)
+    if messages_by_day.get(day):
+        return None, f"no message: already one planned for {day} (1 per day)"
+    tid = page["hero_title_id"]
+    if not tid or not cat.available(tid, send_at)[0]:
         return None, "no message: no title that will still be available at send time"
-    t = cat.titles[title_id]
-    if wa:
-        return {"type": "whatsapp", "send_at": send_at, "template_id": "wa_recommend_title_v1",
-                "variables": {"title_name": t["title"], "dialect_name": t["dialect"]}, "title_id": title_id}, \
-            "WhatsApp: consented, approved template, no device-token risk"
-    body = (f"{t['title']}: aapka agla episode aapka intezaar kar raha hai." if goal["goal_id"] == "G07"
-            else f"Aaj shaam dekhiye {t['title']}.")
-    return {"type": "push", "send_at": send_at, "title_id": title_id, "deeplink": f"ott://title/{title_id}",
-            "text": {"title": t["title"][:40], "body": body[:120]}}, "push: consented, no WhatsApp consent"
+    title = cat.titles[tid]
+    if can_whatsapp:
+        return _whatsapp(title, send_at), "WhatsApp: consented, approved template, no device-token risk"
+    return _push(title, send_at, goal["goal_id"]), "push: consented, no WhatsApp consent"
+
+
+# ---- plan
+
+def _nothing(reason):
+    return {"action": "NO_ACTION", "page": None, "message": None, "reasons": [reason], "assumptions": []}
+
+
+def _abstain_reason(facts, goal, arm):
+    """First reason to do nothing, or None. Order matters: holdout before anything else."""
+    age = facts["trigger_age_s"]["value"]
+    if arm != "agent":
+        return f"viewer is in the {arm or 'unknown'} arm: no action of any kind"
+    if not goal["goal_id"]:
+        return goal["reason"]
+    if age > MAX_TRIGGER_AGE_S:
+        return (f"trigger is {age}s old (buffered offline): the viewer has left that session; "
+                "history updated, nothing published")
+    if facts["dialect"]["value"] is None:
+        return facts["dialect"]["resolution"]
+    return None
 
 
 def plan(cat, facts, goal, now, arm, messages_by_day, allow_messages=True, avoid=()):
     """Returns {"action": HOME_PAGE | NO_ACTION, "page", "message", "reasons", "assumptions"}."""
-    reasons, assumptions = [], []
-    if arm != "agent":
-        return {"action": "NO_ACTION", "page": None, "message": None,
-                "reasons": [f"viewer is in the {arm or 'unknown'} arm: no action of any kind"], "assumptions": []}
-    if not goal["goal_id"]:
-        return {"action": "NO_ACTION", "page": None, "message": None, "reasons": [goal["reason"]], "assumptions": []}
-    age = facts["trigger_age_s"]["value"]
-    if age > MAX_TRIGGER_AGE_S:
-        return {"action": "NO_ACTION", "page": None, "message": None,
-                "reasons": [f"trigger is {age}s old (buffered offline): the viewer has left that session; "
-                            "history updated, nothing published"], "assumptions": []}
-
-    if facts["dialect"]["value"] is None:
-        return {"action": "NO_ACTION", "page": None, "message": None,
-                "reasons": [facts["dialect"]["resolution"]], "assumptions": []}
-
+    reason = _abstain_reason(facts, goal, arm)
+    if reason:
+        return _nothing(reason)
     page = build_page(cat, facts, goal, now)
     if not page["rows"] and not page["hero_title_id"]:
-        return {"action": "NO_ACTION", "page": None, "message": None,
-                "reasons": [f"not enough available titles in {page['dialect']} for a valid row"], "assumptions": []}
-    assumptions.append(f"app will request the {page['dialect']} page (dialect at trigger time)")
+        return _nothing(f"not enough available titles in {page['dialect']} for a valid row")
+
+    assumptions = [f"app will request the {page['dialect']} page (dialect at trigger time)"]
     if facts["watched_slugs"]["value"]:
         assumptions.append("titles already started are excluded except in next_episode/hero")
-    msg, why = (follow_up(cat, facts, goal, page, now, messages_by_day, avoid) if allow_messages
-                else (None, "no message: degraded mode, irreversible actions suppressed"))
-    reasons.append(why)
-    return {"action": "HOME_PAGE", "page": page, "message": msg, "reasons": reasons, "assumptions": assumptions}
+    if allow_messages:
+        message, why = follow_up(cat, facts, goal, page, now, messages_by_day, avoid)
+    else:
+        message, why = None, "no message: degraded mode, irreversible actions suppressed"
+    return {"action": "HOME_PAGE", "page": page, "message": message, "reasons": [why], "assumptions": assumptions}
 
 
 def confidence(facts, goal, plan_):
-    """Confidence in the decision (not a success probability), with the reasons that moved it."""
-    score, why = 0.8, []
-    if facts["dialect"]["conflicts"]:
-        score -= 0.15
-        why.append("dialect sources disagree (" + ", ".join(facts["dialect"]["conflicts"]) + ")")
-    if facts["subscription_status"]["value"] is None:
-        score -= 0.15
-        why.append("subscription status unknown")
-    elif facts["subscription_status"]["source"] == "profile":
-        score -= 0.05
-        why.append("status from day-old snapshot")
+    """Confidence in the decision's evidence (not a success probability), with what lowered it."""
+    status, conflicts = facts["subscription_status"], facts["dialect"]["conflicts"]
+    penalties = []
+    if conflicts:
+        penalties.append((0.15, "dialect sources disagree (" + ", ".join(conflicts) + ")"))
+    if status["value"] is None:
+        penalties.append((0.15, "subscription status unknown"))
+    elif status["source"] == "profile":
+        penalties.append((0.05, "status from day-old snapshot"))
     if plan_["page"] and len(plan_["page"]["rows"]) < 2:
-        score -= 0.1
-        why.append("thin page (fewer than 2 rows)")
-    if goal["goal_id"] in ("G04", "G05", "G06"):
-        score -= 0.1
-        why.append("purchase goals have low base rates")
-    return round(max(score, 0.1), 2), why or ["fresh, consistent evidence"]
+        penalties.append((0.1, "thin page (fewer than 2 rows)"))
+    if goal["goal_id"] in PREMIUM_FIRST:
+        penalties.append((0.1, "purchase goals have low base rates"))
+    score = 0.8 - sum(cut for cut, _ in penalties)
+    return round(max(score, 0.1), 2), [why for _, why in penalties] or ["fresh, consistent evidence"]

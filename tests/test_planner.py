@@ -56,6 +56,15 @@ class Page(unittest.TestCase):
         slugs = [p["page"]["hero_title_id"]] + [t for r in p["page"]["rows"] for t in r["title_ids"]]
         self.assertEqual(len(slugs), len(set(slugs)))
 
+    def test_genre_tie_broken_by_viewing_order_not_set_order(self):
+        titles = [title("W1", "w1", genres="Action"), title("W2", "w2", genres="Romance")] + \
+                 [title(f"A{i}", f"a{i}", genres="Action") for i in range(4)] + \
+                 [title(f"R{i}", f"r{i}", genres="Romance") for i in range(4)]
+        for watched, expected in ((["w1", "w2"], "A"), (["w2", "w1"], "R")):
+            p = planner.plan(catalog(titles), facts(watched_slugs=watched), GOAL, NOW, "agent", {})
+            row = next(r for r in p["page"]["rows"] if r["row_type"] == "genre")
+            self.assertTrue(all(t.startswith(expected) for t in row["title_ids"]), (watched, row))
+
     def test_thin_dialect_gets_hero_only_no_short_rows(self):
         p = planner.plan(catalog([title("T1", "a", dialect="d3"), title("T2", "b", dialect="d3")]),
                          facts(dialect="d3"), GOAL, NOW, "agent", {})

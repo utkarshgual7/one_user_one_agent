@@ -1,0 +1,156 @@
+{
+ "viewer_id": "U-02808",
+ "goals": [
+  {
+   "goal_key": "U-02808:G07:2026-10-01T00:16:01.228Z",
+   "user_id": "U-02808",
+   "goal_id": "G07",
+   "decision_id": "D-000077",
+   "started_at": "2026-10-01T00:16:01.228Z",
+   "deadline": "2026-10-04T00:16:01.228Z",
+   "status": "failed",
+   "verdict_reason": "no play_started matching the rule before 2026-10-04T00:16:01.228Z",
+   "judged_at": "2026-10-15T18:30:00.000Z",
+   "rule_version": "goal_rule:G07@v1",
+   "target": "hama-chudibha-d1",
+   "arm": "agent",
+   "success_at": null
+  }
+ ],
+ "decisions": [
+  {
+   "decision_id": "D-000077",
+   "viewer_id": "U-02808",
+   "arm": "agent",
+   "trigger": {
+    "event": "app_open",
+    "event_id": "177e7481-2c58-42f3-b463-8c3d0087a87e",
+    "received_at": "2026-10-01T00:16:01.208Z",
+    "deliver_at": "2026-10-01T00:16:01.208Z",
+    "event_age_s": 603033
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [
+     "profile:d3"
+    ],
+    "resolution": "app shows only the page of its current dialect; others are hints",
+    "used": "d1"
+   },
+   "conflicts": [
+    {
+     "fact": "dialect",
+     "used": "d1",
+     "source": "app_setting",
+     "conflicts": [
+      "profile:d3"
+     ],
+     "resolution": "app shows only the page of its current dialect; others are hints"
+    }
+   ],
+   "model": {
+    "called": false
+   },
+   "checks": {
+    "passed": [],
+    "failed": []
+   },
+   "goal": {
+    "id": "G07",
+    "name": "resume_series_3d",
+    "deadline": "2026-10-04T00:16:01.228Z",
+    "kept": false,
+    "target": "hama-chudibha-d1",
+    "reason": "hama-chudibha-d1: 33 episodes left, idle 6d",
+    "success_signal": {
+     "event": "play_started",
+     "condition": "same content_slug as the unfinished series"
+    },
+    "rule": "goal_rule:G07@v1",
+    "key": "U-02808:G07:2026-10-01T00:16:01.228Z"
+   },
+   "goals_considered": [
+    {
+     "goal_id": "G04",
+     "eligible": false,
+     "why": "status=active"
+    },
+    {
+     "goal_id": "G06",
+     "eligible": false,
+     "why": "status=active"
+    },
+    {
+     "goal_id": "G01",
+     "eligible": false,
+     "why": "signed up 265.8d ago, has_played=True"
+    },
+    {
+     "goal_id": "G03",
+     "eligible": false,
+     "why": "signed up 265.8d ago"
+    },
+    {
+     "goal_id": "G07",
+     "eligible": true,
+     "why": "hama-chudibha-d1: 33 episodes left, idle 6d"
+    }
+   ],
+   "confidence": 0.6,
+   "confidence_reason": [
+    "dialect sources disagree (profile:d3)",
+    "status from day-old snapshot"
+   ],
+   "assumptions": [
+    "history complete up to 2026-10-01T00:16:01.208Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "event:54e18385-59c2-4138-8e5b-2a6ea0ea0e5d",
+     "age_s": 0
+    },
+    {
+     "ref": "goal_rule:G07@v1",
+     "age_s": null
+    },
+    {
+     "ref": "trigger:177e7481-2c58-42f3-b463-8c3d0087a87e",
+     "age_s": 0
+    },
+    {
+     "ref": "profile:U-02808@2026-09-29T05:36:17.567Z",
+     "age_s": 87361
+    }
+   ],
+   "plan_reasons": [
+    "trigger is 603033s old (buffered offline): the viewer has left that session; history updated, nothing published"
+   ],
+   "status": "NO_ACTION",
+   "no_action_reason": "trigger is 603033s old (buffered offline): the viewer has left that session; history updated, nothing published",
+   "degraded": [],
+   "budget": {
+    "model_calls": 0,
+    "tool_calls": 1,
+    "simulated_wait_s": 0.02
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.47,
+    "dependency_wait_ms": 20
+   },
+   "decided_in_ms": 20,
+   "published_at": "2026-10-01T00:16:01.228Z",
+   "action": "NO_ACTION",
+   "content": [],
+   "action_ids": [],
+   "decided_at": "2026-10-01T00:16:01.228Z"
+  }
+ ],
+ "actions": [],
+ "learned": [
+  {
+   "at": "2026-10-15T18:30:00.000Z",
+   "note": "G07 failed"
+  }
+ ]
+}

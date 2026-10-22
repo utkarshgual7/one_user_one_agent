@@ -1,0 +1,273 @@
+{
+ "viewer_id": "U-03051",
+ "goals": [
+  {
+   "goal_key": "U-03051:G07:2026-10-01T10:35:07.083Z",
+   "user_id": "U-03051",
+   "goal_id": "G07",
+   "decision_id": "D-001279",
+   "started_at": "2026-10-01T10:35:07.083Z",
+   "deadline": "2026-10-04T10:35:07.083Z",
+   "status": "failed",
+   "verdict_reason": "no play_started matching the rule before 2026-10-04T10:35:07.083Z",
+   "judged_at": "2026-10-15T18:30:00.000Z",
+   "rule_version": "goal_rule:G07@v1",
+   "target": "bagi-baya-d4",
+   "arm": "agent",
+   "success_at": null
+  }
+ ],
+ "decisions": [
+  {
+   "decision_id": "D-001279",
+   "viewer_id": "U-03051",
+   "arm": "agent",
+   "trigger": {
+    "event": "app_open",
+    "event_id": "df07c579-6db5-4653-b5b8-340b5aec96f9",
+    "received_at": "2026-10-01T10:35:06.863Z",
+    "deliver_at": "2026-10-01T10:35:06.863Z",
+    "event_age_s": 0
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [],
+    "resolution": null,
+    "used": "d4"
+   },
+   "conflicts": [],
+   "model": {
+    "called": true,
+    "error": "model provider unavailable (HTTP 503)",
+    "fallback": "rules only, messages suppressed"
+   },
+   "checks": {
+    "passed": [
+     "holdout",
+     "eligibility",
+     "measurable_goal",
+     "dialect",
+     "row_count",
+     "titles_valid",
+     "row_size",
+     "row_type",
+     "duplicate_page"
+    ],
+    "failed": []
+   },
+   "goal": {
+    "id": "G07",
+    "name": "resume_series_3d",
+    "deadline": "2026-10-04T10:35:07.083Z",
+    "kept": false,
+    "target": "bagi-baya-d4",
+    "reason": "bagi-baya-d4: 39 episodes left, idle 22d",
+    "success_signal": {
+     "event": "play_started",
+     "condition": "same content_slug as the unfinished series"
+    },
+    "rule": "goal_rule:G07@v1",
+    "key": "U-03051:G07:2026-10-01T10:35:07.083Z"
+   },
+   "goals_considered": [
+    {
+     "goal_id": "G04",
+     "eligible": false,
+     "why": "status=active"
+    },
+    {
+     "goal_id": "G06",
+     "eligible": false,
+     "why": "status=active"
+    },
+    {
+     "goal_id": "G01",
+     "eligible": false,
+     "why": "signed up 120.9d ago, has_played=True"
+    },
+    {
+     "goal_id": "G03",
+     "eligible": false,
+     "why": "signed up 120.9d ago"
+    },
+    {
+     "goal_id": "G07",
+     "eligible": true,
+     "why": "bagi-baya-d4: 39 episodes left, idle 22d"
+    }
+   ],
+   "confidence": 0.75,
+   "confidence_reason": [
+    "status from day-old snapshot"
+   ],
+   "assumptions": [
+    "app will request the d4 page (dialect at trigger time)",
+    "titles already started are excluded except in next_episode/hero",
+    "history complete up to 2026-10-01T10:35:06.863Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "event:084e4bc3-c3cb-4966-9294-1fbf5dbd5763",
+     "age_s": 0
+    },
+    {
+     "ref": "goal_rule:G07@v1",
+     "age_s": null
+    },
+    {
+     "ref": "trigger:df07c579-6db5-4653-b5b8-340b5aec96f9",
+     "age_s": 0
+    },
+    {
+     "ref": "profile:U-03051@2026-09-29T15:14:16.513Z",
+     "age_s": 124507
+    },
+    {
+     "ref": "catalogue:T0916",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0926",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0928",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0949",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0950",
+     "age_s": null
+    }
+   ],
+   "plan_reasons": [
+    "no message: degraded mode, irreversible actions suppressed"
+   ],
+   "status": "PUBLISHED",
+   "no_action_reason": null,
+   "degraded": [
+    "model: model provider unavailable (HTTP 503)"
+   ],
+   "budget": {
+    "model_calls": 1,
+    "tool_calls": 1,
+    "simulated_wait_s": 0.22
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.55,
+    "dependency_wait_ms": 220
+   },
+   "decided_in_ms": 221,
+   "published_at": "2026-10-01T10:35:07.083Z",
+   "action": "HOME_PAGE",
+   "content": [
+    "title:T0916",
+    "title:T0926",
+    "title:T0928",
+    "title:T0949",
+    "title:T0950",
+    "title:T0951",
+    "title:T0952",
+    "title:T0941",
+    "title:T0967",
+    "title:T0982",
+    "title:T0993",
+    "title:T0918",
+    "title:T0925",
+    "title:T0932",
+    "title:T0917",
+    "title:T0922",
+    "title:T0920",
+    "title:T0938",
+    "title:T0923",
+    "title:T0943",
+    "title:T0944",
+    "title:T0937",
+    "title:T0988",
+    "title:T1008",
+    "title:T1011",
+    "title:T1017",
+    "title:T1048",
+    "title:T1051",
+    "title:T1092",
+    "title:T1105",
+    "title:T1155"
+   ],
+   "action_ids": [
+    "A-000601"
+   ],
+   "decided_at": "2026-10-01T10:35:07.083Z"
+  }
+ ],
+ "actions": [
+  {
+   "type": "home_page",
+   "dialect": "d4",
+   "hero_title_id": "T0916",
+   "rows": [
+    {
+     "row_type": "genre",
+     "title_ids": [
+      "T0926",
+      "T0928",
+      "T0949",
+      "T0950",
+      "T0951",
+      "T0952",
+      "T0941",
+      "T0967",
+      "T0982",
+      "T0993"
+     ]
+    },
+    {
+     "row_type": "popular_in_dialect",
+     "title_ids": [
+      "T0918",
+      "T0925",
+      "T0932",
+      "T0917",
+      "T0922",
+      "T0920",
+      "T0938",
+      "T0923",
+      "T0943",
+      "T0944"
+     ]
+    },
+    {
+     "row_type": "new_releases",
+     "title_ids": [
+      "T0937",
+      "T0988",
+      "T1008",
+      "T1011",
+      "T1017",
+      "T1048",
+      "T1051",
+      "T1092",
+      "T1105",
+      "T1155"
+     ]
+    }
+   ],
+   "decision_id": "D-001279",
+   "user_id": "U-03051",
+   "trigger_event_id": "df07c579-6db5-4653-b5b8-340b5aec96f9",
+   "published_at": "2026-10-01T10:35:07.083Z",
+   "goal_key": "U-03051:G07:2026-10-01T10:35:07.083Z",
+   "action_id": "A-000601",
+   "status": "published"
+  }
+ ],
+ "learned": [
+  {
+   "at": "2026-10-15T18:30:00.000Z",
+   "note": "G07 failed"
+  }
+ ]
+}

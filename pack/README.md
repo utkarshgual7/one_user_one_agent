@@ -14,7 +14,7 @@ Only this pack is valid evidence about users and titles.
 | `data/profiles_snapshot.csv` | Daily warehouse export taken 2026-09-30 05:30 IST: 4,888 rows |
 | `data/catalogue.csv` | 2,014 title records across six dialects (`d1`-`d6`) |
 | `data/episodes.csv` | Episodes for every title: 26,986 rows |
-| `config/goals.json` | The 12 candidate goals, with eligibility and success conditions |
+| `config/goals.json` | The 12 configured goals, with eligibility and success conditions |
 | `config/interventions.json` | What the agent can change (home page, push, WhatsApp, in-app message) and the rules |
 | `config/pricing.json` | The only prices that exist |
 | `config/messaging_policy.md` | Consent, quiet hours, frequency, honesty and holdout rules |

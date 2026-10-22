@@ -1,0 +1,150 @@
+{
+ "viewer_id": "U-01386",
+ "goals": [
+  {
+   "goal_key": "U-01386:G05:2026-09-30T19:16:22.282Z",
+   "user_id": "U-01386",
+   "goal_id": "G05",
+   "decision_id": "D-000018",
+   "started_at": "2026-09-30T19:16:22.282Z",
+   "deadline": "2026-10-07T19:16:22.282Z",
+   "status": "succeeded",
+   "verdict_reason": "purchase_completed event:oua-009537 at 2026-10-06T06:37:00.000Z (rule goal_rule:G05@v1)",
+   "judged_at": "2026-10-15T18:30:00.000Z",
+   "rule_version": "goal_rule:G05@v1",
+   "target": null,
+   "arm": "holdout",
+   "success_at": "2026-10-06T06:37:00.000Z"
+  }
+ ],
+ "decisions": [
+  {
+   "decision_id": "D-000018",
+   "viewer_id": "U-01386",
+   "arm": "holdout",
+   "trigger": {
+    "event": "app_open",
+    "event_id": "1530a7cb-ffc6-49e5-a074-cabd7f0a0fac",
+    "received_at": "2026-09-30T19:16:22.262Z",
+    "deliver_at": "2026-09-30T19:16:22.262Z",
+    "event_age_s": 0
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [],
+    "resolution": null,
+    "used": "d4"
+   },
+   "conflicts": [],
+   "model": {
+    "called": false
+   },
+   "checks": {
+    "passed": [],
+    "failed": []
+   },
+   "goal": {
+    "id": "G05",
+    "name": "first_paid_7d",
+    "deadline": "2026-10-07T19:16:22.282Z",
+    "kept": false,
+    "target": null,
+    "reason": "status=never, never paid",
+    "success_signal": {
+     "event": "purchase_completed",
+     "condition": "is_trial = false"
+    },
+    "rule": "goal_rule:G05@v1",
+    "key": "U-01386:G05:2026-09-30T19:16:22.282Z"
+   },
+   "goals_considered": [
+    {
+     "goal_id": "G04",
+     "eligible": false,
+     "why": "status=never"
+    },
+    {
+     "goal_id": "G06",
+     "eligible": false,
+     "why": "status=never"
+    },
+    {
+     "goal_id": "G01",
+     "eligible": false,
+     "why": "signed up 45.9d ago, has_played=True"
+    },
+    {
+     "goal_id": "G03",
+     "eligible": false,
+     "why": "signed up 45.9d ago"
+    },
+    {
+     "goal_id": "G07",
+     "eligible": false,
+     "why": "no unfinished series idle 3+ days in the app's dialect"
+    },
+    {
+     "goal_id": "G12",
+     "eligible": false,
+     "why": "last app_open 9d ago"
+    },
+    {
+     "goal_id": "G02",
+     "eligible": false,
+     "why": "has_completed=True"
+    },
+    {
+     "goal_id": "G05",
+     "eligible": true,
+     "why": "status=never, never paid"
+    }
+   ],
+   "confidence": 0.65,
+   "confidence_reason": [
+    "status from day-old snapshot",
+    "purchase goals have low base rates"
+   ],
+   "assumptions": [
+    "history complete up to 2026-09-30T19:16:22.262Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "profile:U-01386@2026-09-29T02:39:29.834Z",
+     "age_s": 69382
+    },
+    {
+     "ref": "goal_rule:G05@v1",
+     "age_s": null
+    },
+    {
+     "ref": "trigger:1530a7cb-ffc6-49e5-a074-cabd7f0a0fac",
+     "age_s": 0
+    }
+   ],
+   "plan_reasons": [
+    "viewer is in the holdout arm: no action of any kind"
+   ],
+   "status": "NO_ACTION",
+   "no_action_reason": "viewer is in the holdout arm: no action of any kind",
+   "degraded": [],
+   "budget": {
+    "model_calls": 0,
+    "tool_calls": 1,
+    "simulated_wait_s": 0.02
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.12,
+    "dependency_wait_ms": 20
+   },
+   "decided_in_ms": 20,
+   "published_at": "2026-09-30T19:16:22.282Z",
+   "action": "NO_ACTION",
+   "content": [],
+   "action_ids": [],
+   "decided_at": "2026-09-30T19:16:22.282Z"
+  }
+ ],
+ "actions": [],
+ "learned": []
+}

@@ -43,25 +43,25 @@ class State:
         self.db.executescript(SCHEMA)
 
     # ---- events
-    def add_event(self, e):
+    def add_event(self, event):
         """Store one event. Returns False if this event_id was already stored."""
         cur = self.db.execute(
             "INSERT OR IGNORE INTO events VALUES (?,?,?,?,?)",
-            (e["event_id"], e["user_id"], e["event"], e["received_at"], json.dumps(e)))
+            (event["event_id"], event["user_id"], event["event"], event["received_at"], json.dumps(event)))
         return cur.rowcount == 1
 
     def ingest_history(self, path):
         """Bulk-load the 30-day history. Returns (lines read, duplicates skipped)."""
         before = self.db.execute("SELECT COUNT(*) FROM events").fetchone()[0]
-        n = 0
+        lines_read = 0
         with self.db:
-            for e in iter_jsonl(path):
-                n += 1
+            for event in iter_jsonl(path):
+                lines_read += 1
                 self.db.execute(
                     "INSERT OR IGNORE INTO events VALUES (?,?,?,?,?)",
-                    (e["event_id"], e["user_id"], e["event"], e["received_at"], json.dumps(e)))
+                    (event["event_id"], event["user_id"], event["event"], event["received_at"], json.dumps(event)))
         added = self.db.execute("SELECT COUNT(*) FROM events").fetchone()[0] - before
-        return n, n - added
+        return lines_read, lines_read - added
 
     def history(self, user_id, as_of):
         """Everything the server had received for this viewer by `as_of`, in server-received order.
@@ -69,28 +69,28 @@ class State:
         rows = self.db.execute(
             "SELECT body FROM events WHERE user_id = ? AND received_at <= ? ORDER BY received_at",
             (user_id, as_of))
-        return [json.loads(r["body"]) for r in rows]
+        return [json.loads(row["body"]) for row in rows]
 
     # ---- decisions
     def has_decision(self, trigger_event_id):
         return self.db.execute(
             "SELECT 1 FROM decisions WHERE trigger_event_id = ?", (trigger_event_id,)).fetchone() is not None
 
-    def save_decision(self, d):
+    def save_decision(self, decision):
         with self.db:
             self.db.execute(
                 "INSERT INTO decisions VALUES (?,?,?,?,?,?)",
-                (d["decision_id"], d["viewer_id"], d["trigger"]["event_id"], d["decided_at"], d["status"],
-                 json.dumps(d)))
+                (decision["decision_id"], decision["viewer_id"], decision["trigger"]["event_id"], decision["decided_at"], decision["status"],
+                 json.dumps(decision)))
 
     def decisions(self, user_id):
         rows = self.db.execute("SELECT body FROM decisions WHERE user_id = ? ORDER BY decided_at", (user_id,))
-        return [json.loads(r["body"]) for r in rows]
+        return [json.loads(row["body"]) for row in rows]
 
     # ---- goals
     def open_goal(self, user_id):
-        r = self.db.execute("SELECT * FROM goals WHERE user_id = ? AND status = 'open'", (user_id,)).fetchone()
-        return dict(r) if r else None
+        row = self.db.execute("SELECT * FROM goals WHERE user_id = ? AND status = 'open'", (user_id,)).fetchone()
+        return dict(row) if row else None
 
     def start_goal(self, user_id, goal_id, decision_id, started_at, deadline, rule_version, target=None, arm=None):
         """Holdout viewers get the same goal (a shadow goal, never acted on) so both arms are judged alike."""
@@ -113,31 +113,31 @@ class State:
             sql, args = sql + " AND user_id = ?", args + [user_id]
         if status:
             sql, args = sql + " AND status = ?", args + [status]
-        return [dict(r) for r in self.db.execute(sql, args)]
+        return [dict(row) for row in self.db.execute(sql, args)]
 
     # ---- actions
-    def save_action(self, a):
+    def save_action(self, action):
         with self.db:
             self.db.execute(
                 "INSERT INTO actions VALUES (?,?,?,?,?,?)",
-                (a["action_id"], a["decision_id"], a["user_id"], a["type"], a["published_at"], json.dumps(a)))
+                (action["action_id"], action["decision_id"], action["user_id"], action["type"], action["published_at"], json.dumps(action)))
 
-    def update_action(self, a):
+    def update_action(self, action):
         with self.db:
-            self.db.execute("UPDATE actions SET body = ? WHERE action_id = ?", (json.dumps(a), a["action_id"]))
+            self.db.execute("UPDATE actions SET body = ? WHERE action_id = ?", (json.dumps(action), action["action_id"]))
 
     def all_actions(self):
-        return [json.loads(r["body"]) for r in self.db.execute("SELECT body FROM actions ORDER BY published_at, action_id")]
+        return [json.loads(row["body"]) for row in self.db.execute("SELECT body FROM actions ORDER BY published_at, action_id")]
 
     def actions(self, user_id):
         rows = self.db.execute("SELECT body FROM actions WHERE user_id = ? ORDER BY published_at", (user_id,))
-        return [json.loads(r["body"]) for r in rows]
+        return [json.loads(row["body"]) for row in rows]
 
     # ---- learning
-    def learn(self, user_id, at, note):
+    def learn(self, user_id, noted_at, note):
         with self.db:
-            self.db.execute("INSERT INTO learned VALUES (?,?,?)", (user_id, at, note))
+            self.db.execute("INSERT INTO learned VALUES (?,?,?)", (user_id, noted_at, note))
 
     def learned(self, user_id):
-        return [dict(r) for r in self.db.execute(
+        return [dict(row) for row in self.db.execute(
             "SELECT at, note FROM learned WHERE user_id = ? ORDER BY at", (user_id,))]

@@ -12,15 +12,15 @@ from pathlib import Path
 
 
 def iter_jsonl(path):
-    with open(path) as f:
-        for line in f:
+    with open(path) as file:
+        for line in file:
             if line.strip():
                 yield json.loads(line)
 
 
 def _csv(path):
-    with open(path, newline="") as f:
-        return list(csv.DictReader(f))
+    with open(path, newline="") as file:
+        return list(csv.DictReader(file))
 
 
 @dataclass
@@ -37,7 +37,7 @@ class Pack:
     @cached_property
     def dialects(self):
         """Dialects that actually have content. App settings outside this set are invalid."""
-        return {t["dialect"] for t in self.catalogue.values()}
+        return {title["dialect"] for title in self.catalogue.values()}
 
     def events_path(self):
         return self.root / "data" / "events.jsonl"
@@ -50,24 +50,24 @@ class Pack:
 def load_pack(root):
     root = Path(root)
     episodes = defaultdict(list)
-    for r in _csv(root / "data/episodes.csv"):
-        r["season"], r["episode"], r["minutes"] = int(r["season"]), int(r["episode"]), float(r["minutes"])
-        episodes[r["content_slug"]].append(r)
+    for row in _csv(root / "data/episodes.csv"):
+        row["season"], row["episode"], row["minutes"] = int(row["season"]), int(row["episode"]), float(row["minutes"])
+        episodes[row["content_slug"]].append(row)
     for eps in episodes.values():
-        eps.sort(key=lambda r: (r["season"], r["episode"]))
+        eps.sort(key=lambda row: (row["season"], row["episode"]))
 
     profiles = defaultdict(list)
-    for r in _csv(root / "data/profiles_snapshot.csv"):
-        profiles[r["user_id"]].append(r)
+    for row in _csv(root / "data/profiles_snapshot.csv"):
+        profiles[row["user_id"]].append(row)
 
     goals = json.loads((root / "config/goals.json").read_text())
     return Pack(
         root=root,
-        catalogue={r["title_id"]: r for r in _csv(root / "data/catalogue.csv")},
+        catalogue={row["title_id"]: row for row in _csv(root / "data/catalogue.csv")},
         episodes=dict(episodes),
         profiles=dict(profiles),
-        goals={g["goal_id"]: g for g in goals["goals"]},
+        goals={goal["goal_id"]: goal for goal in goals["goals"]},
         interventions=json.loads((root / "config/interventions.json").read_text()),
         pricing=json.loads((root / "config/pricing.json").read_text()),
-        arms={r["user_id"]: r["arm"] for r in _csv(root / "replay/arms.csv")},
+        arms={row["user_id"]: row["arm"] for row in _csv(root / "replay/arms.csv")},
     )

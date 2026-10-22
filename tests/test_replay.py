@@ -170,6 +170,13 @@ class ReplayTest(unittest.TestCase):
         self.assertIn("event:b1", g["verdict_reason"])
         self.assertIsNone(r.state.open_goal("U-3"))
 
+    def test_unknown_control_type_is_logged_not_fatal(self):
+        ctl = {"at": "2026-10-01T05:00:00.000Z", "type": "pricing_changed", "detail": "new to this replay day"}
+        _, _, decisions, _ = self.run_replay([event("t1", "U-1", "app_open", OPEN, deliver=OPEN)], controls=[ctl])
+        self.assertEqual(decisions[0]["status"], "PUBLISHED")
+        log = read_jsonl(self.tmp / "out/control_log.jsonl")
+        self.assertIn("unknown control type", log[0]["response"])
+
     def test_opt_out_cancels_scheduled_message(self):
         live = [event("o1", "U-1", "notification_opt_out", "2026-10-01T07:00:00.000Z",
                       deliver="2026-10-01T07:00:00.000Z", props={"channel": "whatsapp"})]

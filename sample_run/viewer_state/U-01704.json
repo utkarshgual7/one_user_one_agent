@@ -1,0 +1,169 @@
+{
+ "viewer_id": "U-01704",
+ "goals": [
+  {
+   "goal_key": "U-01704:G01:2026-10-01T13:13:10.719Z",
+   "user_id": "U-01704",
+   "goal_id": "G01",
+   "decision_id": "D-001613",
+   "started_at": "2026-10-01T13:13:10.719Z",
+   "deadline": "2026-10-02T13:13:10.719Z",
+   "status": "succeeded",
+   "verdict_reason": "play_started event:oua-011411 at 2026-10-01T13:14:42.547Z (rule goal_rule:G01@v1)",
+   "judged_at": "2026-10-15T18:30:00.000Z",
+   "rule_version": "goal_rule:G01@v1",
+   "target": null,
+   "arm": "holdout",
+   "success_at": "2026-10-01T13:14:42.547Z"
+  }
+ ],
+ "decisions": [
+  {
+   "decision_id": "D-001613",
+   "viewer_id": "U-01704",
+   "arm": "holdout",
+   "trigger": {
+    "event": "app_open",
+    "event_id": "ea5dcdf9-f72e-47f8-b872-16d44f70db95",
+    "received_at": "2026-10-01T13:13:06.919Z",
+    "deliver_at": "2026-10-01T13:13:06.919Z",
+    "event_age_s": 0
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [],
+    "resolution": null,
+    "used": "d4"
+   },
+   "conflicts": [],
+   "model": {
+    "called": true,
+    "advice": {
+     "goal_id": "G01",
+     "confidence": 0.6,
+     "reason": "mock: first rule-eligible goal",
+     "eligible_claim": true
+    }
+   },
+   "checks": {
+    "passed": [
+     "eligibility",
+     "measurable_goal"
+    ],
+    "failed": [
+     {
+      "check": "holdout",
+      "detail": "arm is 'holdout': no action allowed"
+     }
+    ]
+   },
+   "goal": {
+    "id": "G01",
+    "name": "first_play_24h",
+    "deadline": "2026-10-02T13:13:10.719Z",
+    "kept": false,
+    "target": null,
+    "reason": "signed up 0.0d ago, has_played=False",
+    "success_signal": {
+     "event": "play_started",
+     "condition": "any title"
+    },
+    "rule": "goal_rule:G01@v1",
+    "key": "U-01704:G01:2026-10-01T13:13:10.719Z"
+   },
+   "goals_considered": [
+    {
+     "goal_id": "G04",
+     "eligible": false,
+     "why": "subscription status unknown: no profile row and no billing event"
+    },
+    {
+     "goal_id": "G06",
+     "eligible": false,
+     "why": "subscription status unknown: no profile row and no billing event"
+    },
+    {
+     "goal_id": "G01",
+     "eligible": true,
+     "why": "signed up 0.0d ago, has_played=False"
+    }
+   ],
+   "confidence": 0.65,
+   "confidence_reason": [
+    "subscription status unknown"
+   ],
+   "assumptions": [
+    "history complete up to 2026-10-01T13:13:06.919Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "event:0793abd9-213c-4227-8cd7-03cd24e96e03",
+     "age_s": 24
+    },
+    {
+     "ref": "goal_rule:G01@v1",
+     "age_s": null
+    },
+    {
+     "ref": "trigger:ea5dcdf9-f72e-47f8-b872-16d44f70db95",
+     "age_s": 0
+    }
+   ],
+   "plan_reasons": [
+    "viewer is in the holdout arm: no action of any kind"
+   ],
+   "status": "NO_ACTION",
+   "no_action_reason": "viewer is in the holdout arm: no action of any kind",
+   "degraded": [],
+   "budget": {
+    "model_calls": 1,
+    "tool_calls": 1,
+    "simulated_wait_s": 3.8
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.05,
+    "dependency_wait_ms": 3800
+   },
+   "decided_in_ms": 3800,
+   "published_at": "2026-10-01T13:13:10.719Z",
+   "action": "NO_ACTION",
+   "content": [],
+   "action_ids": [],
+   "decided_at": "2026-10-01T13:13:10.719Z"
+  },
+  {
+   "decision_id": "D-001612",
+   "viewer_id": "U-01704",
+   "arm": "holdout",
+   "trigger": {
+    "event": "login_success",
+    "event_id": "2d9edf30-f3bb-4c93-a86b-d369ecd8397e",
+    "received_at": "2026-10-01T13:13:02.547Z",
+    "deliver_at": "2026-10-01T13:13:02.547Z"
+   },
+   "status": "NO_ACTION",
+   "no_action_reason": "viewer history unavailable (user data store read failed twice): not enough evidence to act",
+   "degraded": [
+    "user data store read failed twice"
+   ],
+   "budget": {
+    "model_calls": 0,
+    "tool_calls": 2,
+    "simulated_wait_s": 10.0
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.01,
+    "dependency_wait_ms": 10000
+   },
+   "decided_in_ms": 10000,
+   "published_at": "2026-10-01T13:13:12.547Z",
+   "action": "NO_ACTION",
+   "action_ids": [],
+   "decided_at": "2026-10-01T13:13:12.547Z"
+  }
+ ],
+ "actions": [],
+ "learned": []
+}

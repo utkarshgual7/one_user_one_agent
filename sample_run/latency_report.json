@@ -1,0 +1,28 @@
+{
+  "decisions": 2679,
+  "p50_ms": 21,
+  "p95_ms": 821,
+  "p99_ms": 821,
+  "max_ms": 10000,
+  "over_60s": 0,
+  "over_5min": 0,
+  "peak_hour_utc": {
+    "hour": "2026-10-01T15",
+    "decisions": 340,
+    "p95_ms": 821
+  },
+  "dependency_windows": {
+    "model_provider 2026-10-01T10:35:00.000Z..2026-10-01T10:42:00.000Z": {
+      "decisions": 21,
+      "p95_ms": 221,
+      "max_ms": 221
+    },
+    "user_data_store 2026-10-01T13:10:00.000Z..2026-10-01T13:17:00.000Z": {
+      "decisions": 16,
+      "p95_ms": 10000,
+      "max_ms": 10000
+    }
+  },
+  "note": "decided_in_ms = queue wait + measured compute + simulated dependency waits",
+  "duplicate_triggers_ignored": 90
+}

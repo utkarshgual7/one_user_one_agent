@@ -10,5 +10,16 @@ __pycache__/
 *.db
 .DS_Store
 
-# Generated run output (regenerate with: PYTHONPATH=src python3 -m agent run --pack pack --out sample_run)
-sample_run/
+# Sample run: commit the required reports, not the bulk (regenerate all with
+#   PYTHONPATH=src python3 -m agent run --pack pack --out sample_run)
+sample_run/sim/
+sample_run/viewer_state/*
+# a few per-viewer states, chosen to show each kind of decision (see sample_run/final_report.md)
+!sample_run/viewer_state/U-04094.json
+!sample_run/viewer_state/U-04945.json
+!sample_run/viewer_state/U-01386.json
+!sample_run/viewer_state/U-02808.json
+!sample_run/viewer_state/U-01991.json
+!sample_run/viewer_state/U-03051.json
+!sample_run/viewer_state/U-01704.json
+!sample_run/viewer_state/U-04907.json

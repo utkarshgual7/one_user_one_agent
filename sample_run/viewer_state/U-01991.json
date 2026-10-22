@@ -1,0 +1,376 @@
+{
+ "viewer_id": "U-01991",
+ "goals": [
+  {
+   "goal_key": "U-01991:G07:2026-10-01T07:19:33.920Z",
+   "user_id": "U-01991",
+   "goal_id": "G07",
+   "decision_id": "D-000878",
+   "started_at": "2026-10-01T07:19:33.920Z",
+   "deadline": "2026-10-04T07:19:33.920Z",
+   "status": "failed",
+   "verdict_reason": "no play_started matching the rule before 2026-10-04T07:19:33.920Z",
+   "judged_at": "2026-10-15T18:30:00.000Z",
+   "rule_version": "goal_rule:G07@v1",
+   "target": "yadha-kopa-d3",
+   "arm": "agent",
+   "success_at": null
+  }
+ ],
+ "decisions": [
+  {
+   "decision_id": "D-000878",
+   "viewer_id": "U-01991",
+   "arm": "agent",
+   "trigger": {
+    "event": "login_success",
+    "event_id": "202cccb8-8127-465f-b2d0-038cf533197e",
+    "received_at": "2026-10-01T07:19:33.100Z",
+    "deliver_at": "2026-10-01T07:19:33.100Z",
+    "event_age_s": 0
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [],
+    "resolution": null,
+    "used": "d3"
+   },
+   "conflicts": [],
+   "model": {
+    "called": true,
+    "advice": {
+     "goal_id": "G04",
+     "confidence": 0.97,
+     "reason": "The user is on an active trial that ends tomorrow (confirmed in billing).",
+     "eligible_claim": true
+    },
+    "rejected": "model proposed G04, not rule-eligible; ignored"
+   },
+   "checks": {
+    "passed": [
+     "holdout",
+     "eligibility",
+     "measurable_goal",
+     "dialect",
+     "row_count",
+     "titles_valid",
+     "row_size",
+     "row_type",
+     "duplicate_page",
+     "channel",
+     "consent",
+     "quiet_hours",
+     "frequency_cap",
+     "message_title",
+     "copy_length",
+     "forbidden_phrases",
+     "price_claims",
+     "deeplink"
+    ],
+    "failed": [
+     {
+      "check": "model_claim",
+      "detail": "model proposed G04 ('The user is on an active trial that ends tomorrow (confirmed in billing).') but rules say: status=never"
+     }
+    ]
+   },
+   "goal": {
+    "id": "G07",
+    "name": "resume_series_3d",
+    "deadline": "2026-10-04T07:19:33.920Z",
+    "kept": false,
+    "target": "yadha-kopa-d3",
+    "reason": "yadha-kopa-d3: 6 episodes left, idle 6d",
+    "success_signal": {
+     "event": "play_started",
+     "condition": "same content_slug as the unfinished series"
+    },
+    "rule": "goal_rule:G07@v1",
+    "key": "U-01991:G07:2026-10-01T07:19:33.920Z"
+   },
+   "goals_considered": [
+    {
+     "goal_id": "G04",
+     "eligible": false,
+     "why": "status=never"
+    },
+    {
+     "goal_id": "G06",
+     "eligible": false,
+     "why": "status=never"
+    },
+    {
+     "goal_id": "G01",
+     "eligible": false,
+     "why": "signed up 557.3d ago, has_played=True"
+    },
+    {
+     "goal_id": "G03",
+     "eligible": false,
+     "why": "signed up 557.3d ago"
+    },
+    {
+     "goal_id": "G07",
+     "eligible": true,
+     "why": "yadha-kopa-d3: 6 episodes left, idle 6d"
+    }
+   ],
+   "confidence": 0.65,
+   "confidence_reason": [
+    "status from day-old snapshot",
+    "thin page (fewer than 2 rows)"
+   ],
+   "assumptions": [
+    "app will request the d3 page (dialect at trigger time)",
+    "titles already started are excluded except in next_episode/hero",
+    "history complete up to 2026-10-01T07:19:33.100Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "event:1dc00abe-7166-4f39-b3dd-3d766e7183d7",
+     "age_s": 0
+    },
+    {
+     "ref": "goal_rule:G07@v1",
+     "age_s": null
+    },
+    {
+     "ref": "trigger:202cccb8-8127-465f-b2d0-038cf533197e",
+     "age_s": 0
+    },
+    {
+     "ref": "profile:U-01991@2026-09-29T09:36:57.824Z",
+     "age_s": 112773
+    },
+    {
+     "ref": "catalogue:T0905",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0901",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0903",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0907",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0908",
+     "age_s": null
+    }
+   ],
+   "plan_reasons": [
+    "push: consented, no WhatsApp consent"
+   ],
+   "status": "PUBLISHED",
+   "no_action_reason": null,
+   "degraded": [],
+   "budget": {
+    "model_calls": 1,
+    "tool_calls": 1,
+    "simulated_wait_s": 0.82
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.27,
+    "dependency_wait_ms": 820
+   },
+   "decided_in_ms": 820,
+   "published_at": "2026-10-01T07:19:33.920Z",
+   "action": "HOME_PAGE+PUSH",
+   "content": [
+    "title:T0905",
+    "title:T0901",
+    "title:T0903",
+    "title:T0907",
+    "title:T0908",
+    "title:T0913",
+    "title:T0910",
+    "title:T0902",
+    "title:T0904",
+    "title:T0909",
+    "title:T0906"
+   ],
+   "action_ids": [
+    "A-000389",
+    "A-000390"
+   ],
+   "decided_at": "2026-10-01T07:19:33.920Z"
+  },
+  {
+   "decision_id": "D-000880",
+   "viewer_id": "U-01991",
+   "arm": "agent",
+   "trigger": {
+    "event": "app_open",
+    "event_id": "ce154083-0df4-481d-a57d-8afa291fdd66",
+    "received_at": "2026-10-01T07:19:38.414Z",
+    "deliver_at": "2026-10-01T07:19:38.414Z",
+    "event_age_s": 0
+   },
+   "dialect": {
+    "source": "app_setting",
+    "conflicts": [],
+    "resolution": null,
+    "used": "d3"
+   },
+   "conflicts": [],
+   "model": {
+    "called": false
+   },
+   "checks": {
+    "passed": [
+     "holdout",
+     "eligibility",
+     "measurable_goal",
+     "dialect",
+     "row_count",
+     "titles_valid",
+     "row_size",
+     "row_type"
+    ],
+    "failed": [
+     {
+      "check": "duplicate_page",
+      "detail": "identical page already live for this viewer"
+     }
+    ]
+   },
+   "goal": {
+    "id": "G07",
+    "name": "resume_series_3d",
+    "deadline": "2026-10-04T07:19:33.920Z",
+    "kept": true,
+    "target": "yadha-kopa-d3",
+    "reason": "keeping open goal: situation unchanged",
+    "success_signal": {
+     "event": "play_started",
+     "condition": "same content_slug as the unfinished series"
+    },
+    "rule": "goal_rule:G07@v1",
+    "key": "U-01991:G07:2026-10-01T07:19:33.920Z"
+   },
+   "goals_considered": [],
+   "confidence": 0.65,
+   "confidence_reason": [
+    "status from day-old snapshot",
+    "thin page (fewer than 2 rows)"
+   ],
+   "assumptions": [
+    "app will request the d3 page (dialect at trigger time)",
+    "titles already started are excluded except in next_episode/hero",
+    "history complete up to 2026-10-01T07:19:38.414Z (late events may still arrive)"
+   ],
+   "evidence": [
+    {
+     "ref": "trigger:ce154083-0df4-481d-a57d-8afa291fdd66",
+     "age_s": 0
+    },
+    {
+     "ref": "profile:U-01991@2026-09-29T09:36:57.824Z",
+     "age_s": 112778
+    },
+    {
+     "ref": "catalogue:T0905",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0901",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0903",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0907",
+     "age_s": null
+    },
+    {
+     "ref": "catalogue:T0908",
+     "age_s": null
+    }
+   ],
+   "plan_reasons": [
+    "no message: already one planned for 2026-10-02 (1 per day)"
+   ],
+   "status": "NO_ACTION",
+   "no_action_reason": "the same page is already live for this viewer (repeat open in the same visit): nothing new to publish",
+   "degraded": [],
+   "budget": {
+    "model_calls": 0,
+    "tool_calls": 1,
+    "simulated_wait_s": 0.02
+   },
+   "latency": {
+    "queue_wait_ms": 0,
+    "compute_ms": 0.26,
+    "dependency_wait_ms": 20
+   },
+   "decided_in_ms": 20,
+   "published_at": "2026-10-01T07:19:38.434Z",
+   "action": "NO_ACTION",
+   "content": [],
+   "action_ids": [],
+   "decided_at": "2026-10-01T07:19:38.434Z"
+  }
+ ],
+ "actions": [
+  {
+   "type": "home_page",
+   "dialect": "d3",
+   "hero_title_id": "T0905",
+   "rows": [
+    {
+     "row_type": "popular_in_dialect",
+     "title_ids": [
+      "T0901",
+      "T0903",
+      "T0907",
+      "T0908",
+      "T0913",
+      "T0910",
+      "T0902",
+      "T0904",
+      "T0909",
+      "T0906"
+     ]
+    }
+   ],
+   "decision_id": "D-000878",
+   "user_id": "U-01991",
+   "trigger_event_id": "202cccb8-8127-465f-b2d0-038cf533197e",
+   "published_at": "2026-10-01T07:19:33.920Z",
+   "goal_key": "U-01991:G07:2026-10-01T07:19:33.920Z",
+   "action_id": "A-000389",
+   "status": "published"
+  },
+  {
+   "type": "push",
+   "send_at": "2026-10-02T13:30:00.000Z",
+   "title_id": "T0905",
+   "deeplink": "ott://title/T0905",
+   "text": {
+    "title": "Yadha Kopa",
+    "body": "Yadha Kopa: aapka agla episode aapka intezaar kar raha hai."
+   },
+   "decision_id": "D-000878",
+   "user_id": "U-01991",
+   "trigger_event_id": "202cccb8-8127-465f-b2d0-038cf533197e",
+   "published_at": "2026-10-01T07:19:33.920Z",
+   "goal_key": "U-01991:G07:2026-10-01T07:19:33.920Z",
+   "action_id": "A-000390",
+   "status": "scheduled"
+  }
+ ],
+ "learned": [
+  {
+   "at": "2026-10-15T18:30:00.000Z",
+   "note": "G07 failed"
+  }
+ ]
+}

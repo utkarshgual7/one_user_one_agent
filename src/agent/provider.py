@@ -4,8 +4,8 @@ The model is an advisor only. It is asked one narrow question: "of these rule-el
 viewer best?". Its answer is parsed strictly, and anything outside the eligible list is rejected by the caller.
 Generated text is never evidence and never approval.
 
-A real hosted provider would implement the same `advise()` signature. None ships here: it could not be tested
-without a key, and the mock covers every evaluator run.
+The shipped provider is deterministic so every evaluator run exercises the same decision and fault paths. A
+production provider can implement the same `advise()` signature and remains subject to the same validation.
 """
 import json
 
@@ -46,8 +46,8 @@ def parse_advice(raw):
     if isinstance(raw, str):
         try:
             raw = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise ModelError(f"malformed model output: {e.msg}") from None
+        except json.JSONDecodeError as error:
+            raise ModelError(f"malformed model output: {error.msg}") from None
     if not isinstance(raw, dict) or not isinstance(raw.get("goal_id"), (str, type(None))):
         raise ModelError("model output missing goal_id")
     conf = raw.get("confidence")
@@ -66,7 +66,7 @@ class MockProvider:
     NORMAL_LATENCY_S = 0.8
 
     def __init__(self, faults=(), health=lambda dep, now: "ok"):
-        self.faults = {f["trigger_event_id"]: f for f in faults}
+        self.faults = {fault["trigger_event_id"]: fault for fault in faults}
         self.health = health
 
     def advise(self, request, trigger_event_id, now, budget, timeout_s):
