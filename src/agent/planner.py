@@ -98,8 +98,11 @@ def build_page(cat, facts, goal, at):
             for tid in ids:
                 used.discard(cat.titles[tid]["content_slug"])
 
-    add_row("next_episode", [by_slug[s] for s in resume])
     fresh = [t for t in pool if t["content_slug"] not in watched]
+    if hero is None and fresh:   # reserve the hero first so no row repeats it
+        hero = fresh[0]["title_id"]
+        used.add(fresh[0]["content_slug"])
+    add_row("next_episode", [by_slug[s] for s in resume])
     genres = Counter(g for s in watched for g in cat.slug_genres.get(s, []))
     new = [t for t in fresh if clock.shift(at, days=-30)[:10] <= t["release_date"] <= at[:10]]
     if gid == "G08":
@@ -110,18 +113,17 @@ def build_page(cat, facts, goal, at):
     add_row("popular_in_dialect", fresh)
     if gid != "G08":
         add_row("new_releases", new)
-    if hero is None and rows:
-        hero = rows[0]["title_ids"][0]
     return {"dialect": dialect, "hero_title_id": hero, "rows": rows[:6]}
 
 
-def follow_up(cat, facts, goal, page, at, messages_by_day):
+def follow_up(cat, facts, goal, page, at, messages_by_day, avoid=()):
     """At most one evening message for goals that need the viewer to return. Returns (message | None, reason)."""
     if goal["goal_id"] not in RETURN_GOALS:
         return None, f"no message: {goal['goal_id']} is served by the home page alone"
-    wa, push = facts["whatsapp_consent"]["value"], facts["push_consent"]["value"]
+    wa = facts["whatsapp_consent"]["value"] and "whatsapp" not in avoid
+    push = facts["push_consent"]["value"] and "push" not in avoid   # avoid: channels learned undeliverable
     if not (wa or push):
-        return None, "no message: no consent on any channel"
+        return None, "no message: no consented channel that is known to deliver"
     send_day = clock.ist_day(clock.shift(at, days=1))
     send_at = clock.fmt(clock.parse(f"{send_day}T{FOLLOW_UP_HOUR_IST:02d}:00:00+05:30"))
     if messages_by_day.get(send_day):
@@ -140,7 +142,7 @@ def follow_up(cat, facts, goal, page, at, messages_by_day):
             "text": {"title": t["title"][:40], "body": body[:120]}}, "push: consented, no WhatsApp consent"
 
 
-def plan(cat, facts, goal, now, arm, messages_by_day, allow_messages=True):
+def plan(cat, facts, goal, now, arm, messages_by_day, allow_messages=True, avoid=()):
     """Returns {"action": HOME_PAGE | NO_ACTION, "page", "message", "reasons", "assumptions"}."""
     reasons, assumptions = [], []
     if arm != "agent":
@@ -165,7 +167,7 @@ def plan(cat, facts, goal, now, arm, messages_by_day, allow_messages=True):
     assumptions.append(f"app will request the {page['dialect']} page (dialect at trigger time)")
     if facts["watched_slugs"]["value"]:
         assumptions.append("titles already started are excluded except in next_episode/hero")
-    msg, why = (follow_up(cat, facts, goal, page, now, messages_by_day) if allow_messages
+    msg, why = (follow_up(cat, facts, goal, page, now, messages_by_day, avoid) if allow_messages
                 else (None, "no message: degraded mode, irreversible actions suppressed"))
     reasons.append(why)
     return {"action": "HOME_PAGE", "page": page, "message": msg, "reasons": reasons, "assumptions": assumptions}

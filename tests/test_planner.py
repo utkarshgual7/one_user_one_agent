@@ -51,9 +51,19 @@ class Page(unittest.TestCase):
         ids = [t for r in p["page"]["rows"] for t in r["title_ids"]]
         self.assertFalse({"A", "B"} <= set(ids))
 
-    def test_thin_dialect_abstains(self):
+    def test_hero_never_repeated_in_rows(self):
+        p = planner.plan(catalog(D2), facts(), GOAL, NOW, "agent", {})
+        slugs = [p["page"]["hero_title_id"]] + [t for r in p["page"]["rows"] for t in r["title_ids"]]
+        self.assertEqual(len(slugs), len(set(slugs)))
+
+    def test_thin_dialect_gets_hero_only_no_short_rows(self):
         p = planner.plan(catalog([title("T1", "a", dialect="d3"), title("T2", "b", dialect="d3")]),
                          facts(dialect="d3"), GOAL, NOW, "agent", {})
+        self.assertEqual(p["page"]["rows"], [])
+        self.assertEqual(p["page"]["hero_title_id"], "T1")
+
+    def test_empty_dialect_abstains(self):
+        p = planner.plan(catalog(D2), facts(dialect="d3"), GOAL, NOW, "agent", {})
         self.assertEqual(p["action"], "NO_ACTION")
         self.assertIn("not enough available titles in d3", p["reasons"][0])
 

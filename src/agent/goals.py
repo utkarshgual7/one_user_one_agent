@@ -32,19 +32,21 @@ class GoalBook:
 
     def __init__(self, goals):
         self.goals = copy.deepcopy(goals)
-        self.version = 1
+        self.version = 1                 # global, bumps on any correction (for the control log)
+        self.versions = {}               # goal_id -> its own rule version (default 1)
         self.history = []
 
     def correct(self, ctrl):
         g = self.goals[ctrl["goal_id"]]
         g["success"] = {**g["success"], **ctrl["new_success"]}
         self.version += 1
+        self.versions[ctrl["goal_id"]] = self.versions.get(ctrl["goal_id"], 1) + 1
         self.history.append({"version": self.version, "at": ctrl["at"], "goal_id": ctrl["goal_id"],
                              "new_success": ctrl["new_success"]})
         return ctrl["goal_id"]
 
     def rule_ref(self, goal_id):
-        return f"goal_rule:{goal_id}@v{self.version}"
+        return f"goal_rule:{goal_id}@v{self.versions.get(goal_id, 1)}"
 
 
 def _v(facts, name):
@@ -147,6 +149,17 @@ def choose(book, facts, now, open_goal=None):
     return {"goal_id": None, "keep": False, "deadline": None, "reason": "no measurable goal is eligible",
             "evidence": [], "considered": considered,
             "invalidated": open_goal["goal_key"] if open_goal and open_goal["deadline"] > now else None}
+
+
+def choose_specific(book, facts, now, goal_id, base):
+    """Switch to another goal (e.g. the model's pick). Only ever called with a goal the rules found eligible."""
+    ok, why, ev = eligibility(goal_id, facts, now)
+    if not ok:
+        return base
+    hours = book.goals[goal_id]["success"]["window_hours"]
+    return {**base, "goal_id": goal_id, "deadline": clock.shift(now, hours=hours),
+            "target": idle_series(facts, now)["slug"] if goal_id == "G07" else None,
+            "reason": why + " (model preference among rule-eligible goals)", "evidence": ev + [book.rule_ref(goal_id)]}
 
 
 def eligibility_still_valid(goal_id, facts, now):

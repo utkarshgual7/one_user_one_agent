@@ -9,3 +9,6 @@ __pycache__/
 *.pyc
 *.db
 .DS_Store
+
+# Generated run output (regenerate with: PYTHONPATH=src python3 -m agent run --pack pack --out sample_run)
+sample_run/

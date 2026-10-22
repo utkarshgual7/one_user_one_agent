@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS decisions_by_user ON decisions(user_id, decided_at);
 CREATE TABLE IF NOT EXISTS goals (
     goal_key TEXT PRIMARY KEY, user_id TEXT NOT NULL, goal_id TEXT NOT NULL, decision_id TEXT NOT NULL,
     started_at TEXT NOT NULL, deadline TEXT NOT NULL, status TEXT NOT NULL,
-    verdict_reason TEXT, judged_at TEXT, rule_version TEXT, target TEXT, arm TEXT);
+    verdict_reason TEXT, judged_at TEXT, rule_version TEXT, target TEXT, arm TEXT, success_at TEXT);
 CREATE UNIQUE INDEX IF NOT EXISTS one_open_goal ON goals(user_id) WHERE status = 'open';
 
 CREATE TABLE IF NOT EXISTS actions (
@@ -97,15 +97,15 @@ class State:
         key = f"{user_id}:{goal_id}:{started_at}"
         with self.db:
             self.db.execute(
-                "INSERT INTO goals VALUES (?,?,?,?,?,?, 'open', NULL, NULL, ?, ?, ?)",
+                "INSERT INTO goals VALUES (?,?,?,?,?,?, 'open', NULL, NULL, ?, ?, ?, NULL)",
                 (key, user_id, goal_id, decision_id, started_at, deadline, rule_version, target, arm))
         return key
 
-    def close_goal(self, goal_key, status, reason, judged_at):
+    def close_goal(self, goal_key, status, reason, judged_at, success_at=None):
         with self.db:
             self.db.execute(
-                "UPDATE goals SET status = ?, verdict_reason = ?, judged_at = ? WHERE goal_key = ?",
-                (status, reason, judged_at, goal_key))
+                "UPDATE goals SET status = ?, verdict_reason = ?, judged_at = ?, success_at = ? WHERE goal_key = ?",
+                (status, reason, judged_at, success_at, goal_key))
 
     def goals(self, user_id=None, status=None):
         sql, args = "SELECT * FROM goals WHERE 1=1", []
@@ -121,6 +121,13 @@ class State:
             self.db.execute(
                 "INSERT INTO actions VALUES (?,?,?,?,?,?)",
                 (a["action_id"], a["decision_id"], a["user_id"], a["type"], a["published_at"], json.dumps(a)))
+
+    def update_action(self, a):
+        with self.db:
+            self.db.execute("UPDATE actions SET body = ? WHERE action_id = ?", (json.dumps(a), a["action_id"]))
+
+    def all_actions(self):
+        return [json.loads(r["body"]) for r in self.db.execute("SELECT body FROM actions ORDER BY published_at, action_id")]
 
     def actions(self, user_id):
         rows = self.db.execute("SELECT body FROM actions WHERE user_id = ? ORDER BY published_at", (user_id,))
